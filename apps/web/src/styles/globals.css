@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --forgex-primary: #2e8c8e;
+  --forgex-primary-dark: #1f5b5d;
+  --forgex-bg: #0f172a;
+  --forgex-surface: #1e293b;
+  --forgex-border: #334155;
+  --forgex-text: #f1f5f9;
+  --forgex-text-muted: #94a3b8;
+}
+
+body {
+  background-color: var(--forgex-bg);
+  color: var(--forgex-text);
+  font-family: system-ui, -apple-system, sans-serif;
+}
