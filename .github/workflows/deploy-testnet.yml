@@ -1,0 +1,32 @@
+name: Deploy to Testnet
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: 'Target network'
+        required: true
+        default: 'testnet'
+        type: choice
+        options:
+          - testnet
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: testnet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install soroban CLI
+        run: cargo install soroban-cli
+      - name: Build contracts
+        run: cargo build --release -p forgex-token -p forgex-factory -p forgex-bonding-curve
+      - name: Deploy
+        run: ./scripts/deploy-testnet.sh
+        env:
+          SOROBAN_ACCOUNT: ${{ secrets.SOROBAN_ACCOUNT }}
+          SOROBAN_RPC_URL: ${{ secrets.SOROBAN_RPC_URL }}
+          SOROBAN_NETWORK_PASSPHRASE: ${{ secrets.SOROBAN_NETWORK_PASSPHRASE }}
