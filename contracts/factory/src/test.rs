@@ -1,14 +1,71 @@
 use soroban_sdk::testutils;
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{Address, Env, String, Vec};
 
-use crate::factory::{FactoryContract, FactoryContractClient};
+use crate::factory::{CurveParams, FactoryContract, FactoryContractClient};
+
+fn deploy_factory<'a>(env: &'a Env, admin: &Address) -> (Address, FactoryContractClient<'a>) {
+    let contract_id: Address = env.register(FactoryContract, ());
+    let client = FactoryContractClient::new(env, &contract_id);
+    client.initialize(admin);
+    (contract_id, client)
+}
+
+fn generate_address(env: &Env) -> Address {
+    <Address as testutils::Address>::generate(env)
+}
 
 #[test]
 fn test_initialize() {
     let env = Env::default();
     env.mock_all_auths();
-    let admin = <Address as testutils::Address>::generate(&env);
-    let contract_id = env.register(FactoryContract, ());
-    let client = FactoryContractClient::new(&env, &contract_id);
-    client.initialize(&admin);
+    let admin = generate_address(&env);
+    let (_id, _client) = deploy_factory(&env, &admin);
+}
+
+#[test]
+fn test_create_token() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let params = crate::factory::CreateTokenParams {
+        name: String::from_str(&env, "Test Token"),
+        symbol: String::from_str(&env, "TEST"),
+        decimals: 7u32,
+        max_supply: 1_000_000_000_000_0000i128,
+        image_uri: String::from_str(&env, "ipfs://Qmtest"),
+        description: String::from_str(&env, "A test token"),
+        curve_params: CurveParams {
+            initial_price: 100i128,
+            steepness: 1i128,
+            reserve_target: 500_000_000_0000i128,
+        },
+    };
+    let (token_id, curve_id) = client.create_token(&params);
+    assert_eq!(client.get_token_count(), 1);
+}
+
+#[test]
+fn test_get_tokens_paginated() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let params = crate::factory::CreateTokenParams {
+        name: String::from_str(&env, "T1"),
+        symbol: String::from_str(&env, "T1"),
+        decimals: 7u32,
+        max_supply: 1_000_000_000_000_0000i128,
+        image_uri: String::from_str(&env, ""),
+        description: String::from_str(&env, ""),
+        curve_params: CurveParams {
+            initial_price: 100i128,
+            steepness: 1i128,
+            reserve_target: 500_000_000_0000i128,
+        },
+    };
+    client.create_token(&params);
+    client.create_token(&params);
+    let tokens = client.get_tokens_paginated(&0u64, &10u64);
+    assert_eq!(tokens.len(), 2);
 }
