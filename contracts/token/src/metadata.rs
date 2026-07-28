@@ -11,7 +11,14 @@ pub struct TokenMetadata {
 }
 
 impl TokenMetadata {
-    pub fn save(env: &Env, admin: Address, name: String, symbol: String, decimals: u32, max_supply: i128) {
+    pub fn save(
+        env: &Env,
+        admin: Address,
+        name: String,
+        symbol: String,
+        decimals: u32,
+        max_supply: i128,
+    ) {
         let metadata = TokenMetadata {
             admin,
             name,

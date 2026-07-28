@@ -15,7 +15,7 @@ fn deploy_token<'a>(env: &'a Env, admin: &Address) -> (Address, TokenContractCli
         &String::from_str(env, "Test Token"),
         &String::from_str(env, "TEST"),
         &7u32,
-        &1_000_000_000_000_0000i128,
+        &10_000_000_000_000_000i128,
     );
     (contract_id, client)
 }

@@ -1,6 +1,10 @@
+#![allow(deprecated)]
+
 mod curve;
-mod pool;
+
 mod math;
+#[allow(dead_code)]
+mod pool;
 
 #[cfg(test)]
 mod test;
