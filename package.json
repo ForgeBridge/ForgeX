@@ -1,0 +1,20 @@
+{
+  "name": "forgex",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ForgeX — Token launchpad on Stellar/Soroban with exponential bonding curve AMM",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build:sdk": "npm run build -w packages/sdk",
+    "build:web": "npm run build -w apps/web",
+    "dev:web": "npm run dev -w apps/web",
+    "lint": "npm run lint -w apps/web",
+    "typecheck": "npm run typecheck -w apps/web"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
