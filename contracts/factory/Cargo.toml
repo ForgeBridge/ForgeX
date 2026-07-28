@@ -13,11 +13,3 @@ testutils = ["soroban-sdk/testutils"]
 
 [dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
-
-[dev-dependencies]
-soroban-sdk = { workspace = true, features = ["testutils"] }
-
-[[test]]
-name = "factory"
-path = "src/test.rs"
-harness = false

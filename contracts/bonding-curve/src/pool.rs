@@ -1,10 +1,4 @@
-use soroban_sdk::{contracttype, Address, Env};
-
-#[contracttype]
-pub struct PoolStorage {
-    pub reserve: i128,
-    pub tokens_sold: i128,
-}
+use soroban_sdk::Env;
 
 pub struct Pool;
 

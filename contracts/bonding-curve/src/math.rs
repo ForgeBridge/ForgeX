@@ -56,7 +56,7 @@ mod tests {
         let params = CurveParams {
             initial_price: 100,
             steepness: 1,
-            reserve_target: 500_000_000_0000,
+            reserve_target: 5_000_000_000_000,
         };
         let price = calculate_price(&params, 0);
         assert_eq!(price, 100);
@@ -67,7 +67,7 @@ mod tests {
         let params = CurveParams {
             initial_price: 100,
             steepness: 1,
-            reserve_target: 500_000_000_0000,
+            reserve_target: 5_000_000_000_000,
         };
         let cost = calculate_buy_cost(&params, 0, 1000);
         let payout = calculate_sell_payout(&params, 1000, 0);

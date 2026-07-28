@@ -1,8 +1,10 @@
-mod token;
+#![allow(deprecated)]
+
 mod metadata;
+mod token;
 
 #[cfg(test)]
 mod test;
 
-pub use token::TokenContract;
 pub use metadata::TokenMetadata;
+pub use token::TokenContract;

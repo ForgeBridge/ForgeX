@@ -64,20 +64,16 @@ impl TokenContract {
         }
         Self::write_total_supply(env, supply);
         Self::receive_balance(env, &to, amount);
-        env.events().publish(
-            (Symbol::new(env, "mint"), to.clone()),
-            (to, amount),
-        );
+        env.events()
+            .publish((Symbol::new(env, "mint"), to.clone()), (to, amount));
     }
 
     pub fn burn_unchecked(env: &Env, from: Address, amount: i128) {
         Self::spend_balance(env, &from, amount);
         let supply = Self::read_total_supply(env) - amount;
         Self::write_total_supply(env, supply);
-        env.events().publish(
-            (Symbol::new(env, "burn"), from.clone()),
-            (from, amount),
-        );
+        env.events()
+            .publish((Symbol::new(env, "burn"), from.clone()), (from, amount));
     }
 
     pub fn transfer_unchecked(env: &Env, from: Address, to: Address, amount: i128) {
@@ -111,11 +107,16 @@ impl TokenContract {
     }
 
     pub fn read_total_supply(env: &Env) -> i128 {
-        env.storage().persistent().get(&Symbol::new(env, "total_supply")).unwrap_or(0)
+        env.storage()
+            .persistent()
+            .get(&Symbol::new(env, "total_supply"))
+            .unwrap_or(0)
     }
 
     pub fn write_total_supply(env: &Env, amount: i128) {
-        env.storage().persistent().set(&Symbol::new(env, "total_supply"), &amount);
+        env.storage()
+            .persistent()
+            .set(&Symbol::new(env, "total_supply"), &amount);
     }
 
     pub fn read_allowance(env: &Env, from: &Address, spender: &Address) -> i128 {
@@ -123,7 +124,13 @@ impl TokenContract {
         env.storage().persistent().get(&key).unwrap_or(0)
     }
 
-    pub fn write_allowance(env: &Env, from: &Address, spender: &Address, amount: i128, _expiration: u64) {
+    pub fn write_allowance(
+        env: &Env,
+        from: &Address,
+        spender: &Address,
+        amount: i128,
+        _expiration: u64,
+    ) {
         let key = (from.clone(), spender.clone());
         env.storage().persistent().set(&key, &amount);
     }

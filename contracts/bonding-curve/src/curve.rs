@@ -1,7 +1,6 @@
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String};
 
-use crate::math::{calculate_buy_cost, calculate_sell_payout, calculate_price};
-use crate::pool::Pool;
+use crate::math::{calculate_buy_cost, calculate_price, calculate_sell_payout};
 
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
@@ -45,7 +44,9 @@ impl BondingCurveContract {
         let new_reserve = reserve + cost;
         let new_tokens_sold = tokens_sold + amount_out;
         env.storage().persistent().set(&"reserve", &new_reserve);
-        env.storage().persistent().set(&"tokens_sold", &new_tokens_sold);
+        env.storage()
+            .persistent()
+            .set(&"tokens_sold", &new_tokens_sold);
         let new_price = calculate_price(&params, new_tokens_sold);
         env.events().publish(
             (String::from_str(&env, "Buy"), buyer.clone()),
@@ -63,7 +64,9 @@ impl BondingCurveContract {
         let new_reserve = reserve - payout;
         let new_tokens_sold = tokens_sold - amount_in;
         env.storage().persistent().set(&"reserve", &new_reserve);
-        env.storage().persistent().set(&"tokens_sold", &new_tokens_sold);
+        env.storage()
+            .persistent()
+            .set(&"tokens_sold", &new_tokens_sold);
         let new_price = calculate_price(&params, new_tokens_sold);
         env.events().publish(
             (String::from_str(&env, "Sell"), seller.clone()),

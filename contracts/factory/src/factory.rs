@@ -92,7 +92,11 @@ pub struct Registry;
 
 impl Registry {
     pub fn push(env: &Env, info: TokenInfo) {
-        let mut tokens: Vec<TokenInfo> = env.storage().persistent().get(&"tokens").unwrap_or(Vec::new(env));
+        let mut tokens: Vec<TokenInfo> = env
+            .storage()
+            .persistent()
+            .get(&"tokens")
+            .unwrap_or(Vec::new(env));
         tokens.push_back(info);
         env.storage().persistent().set(&"tokens", &tokens);
         let count: u64 = env.storage().persistent().get(&"count").unwrap_or(0);
@@ -100,7 +104,10 @@ impl Registry {
     }
 
     pub fn all(env: &Env) -> Vec<TokenInfo> {
-        env.storage().persistent().get(&"tokens").unwrap_or(Vec::new(env))
+        env.storage()
+            .persistent()
+            .get(&"tokens")
+            .unwrap_or(Vec::new(env))
     }
 
     pub fn get(env: &Env, token_id: Address) -> TokenInfo {

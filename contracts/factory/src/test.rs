@@ -1,5 +1,5 @@
 use soroban_sdk::testutils;
-use soroban_sdk::{Address, Env, String, Vec};
+use soroban_sdk::{Address, Env, String};
 
 use crate::factory::{CurveParams, FactoryContract, FactoryContractClient};
 
@@ -32,16 +32,16 @@ fn test_create_token() {
         name: String::from_str(&env, "Test Token"),
         symbol: String::from_str(&env, "TEST"),
         decimals: 7u32,
-        max_supply: 1_000_000_000_000_0000i128,
+        max_supply: 10_000_000_000_000_000i128,
         image_uri: String::from_str(&env, "ipfs://Qmtest"),
         description: String::from_str(&env, "A test token"),
         curve_params: CurveParams {
             initial_price: 100i128,
             steepness: 1i128,
-            reserve_target: 500_000_000_0000i128,
+            reserve_target: 5_000_000_000_000i128,
         },
     };
-    let (token_id, curve_id) = client.create_token(&params);
+    let (_token_id, _curve_id) = client.create_token(&params);
     assert_eq!(client.get_token_count(), 1);
 }
 
@@ -55,13 +55,13 @@ fn test_get_tokens_paginated() {
         name: String::from_str(&env, "T1"),
         symbol: String::from_str(&env, "T1"),
         decimals: 7u32,
-        max_supply: 1_000_000_000_000_0000i128,
+        max_supply: 10_000_000_000_000_000i128,
         image_uri: String::from_str(&env, ""),
         description: String::from_str(&env, ""),
         curve_params: CurveParams {
             initial_price: 100i128,
             steepness: 1i128,
-            reserve_target: 500_000_000_0000i128,
+            reserve_target: 5_000_000_000_000i128,
         },
     };
     client.create_token(&params);

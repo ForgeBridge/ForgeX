@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 mod factory;
 
 #[cfg(test)]

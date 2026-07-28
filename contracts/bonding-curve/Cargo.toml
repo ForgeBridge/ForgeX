@@ -13,8 +13,3 @@ testutils = ["soroban-sdk/testutils"]
 
 [dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
-
-[[test]]
-name = "bonding_curve"
-path = "src/test.rs"
-harness = false

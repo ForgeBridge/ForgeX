@@ -15,7 +15,7 @@ fn deploy_curve<'a>(env: &'a Env) -> (Address, BondingCurveContractClient<'a>) {
     let params = CurveParams {
         initial_price: 100,
         steepness: 1,
-        reserve_target: 500_000_000_0000,
+        reserve_target: 5_000_000_000_000,
     };
     client.initialize(&token_id, &params, &admin);
     (contract_id, client)
