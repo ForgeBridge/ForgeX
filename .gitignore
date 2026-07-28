@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+target/
+
+# Build outputs
+dist/
+.next/
+*.wasm
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage
+coverage/
