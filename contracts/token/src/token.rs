@@ -1,5 +1,6 @@
-use soroban_sdk::{contract, contractimpl, Address, Env, String, Symbol};
+use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env, String, Symbol};
 
+use crate::error::TokenError;
 use crate::metadata::TokenMetadata;
 
 #[contract]
@@ -33,6 +34,9 @@ impl TokenContract {
 
     pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
         from.require_auth();
+        if !Self::is_authorized(&env, &from) || !Self::is_authorized(&env, &to) {
+            TokenError::UnauthorizedError.panic(&env);
+        }
         TokenContract::transfer_unchecked(&env, from, to, amount);
     }
 
@@ -49,6 +53,37 @@ impl TokenContract {
         TokenContract::read_allowance(&env, &from, &spender)
     }
 
+    /// Returns whether `id` is currently authorized to hold and move the
+    /// token. Addresses default to authorized; the admin can revoke or restore
+    /// authorization via [`set_authorized`](Self::set_authorized).
+    pub fn authorized(env: Env, id: Address) -> bool {
+        Self::is_authorized(&env, &id)
+    }
+
+    /// Revokes or restores the authorization of `id`. Admin only.
+    ///
+    /// A revoked (unauthorized) address cannot send tokens via [`transfer`]
+    /// and cannot receive tokens. The admin cannot revoke its own
+    /// authorization, otherwise the contract could be left with no party able
+    /// to manage it.
+    pub fn set_authorized(env: Env, id: Address, authorize: bool) {
+        let admin = TokenMetadata::admin(&env);
+        admin.require_auth();
+        if id == admin && !authorize {
+            TokenError::UnauthorizedError.panic(&env);
+        }
+        Self::write_authorized(&env, &id, authorize);
+        env.events().publish(
+            (
+                Symbol::new(&env, "set_authorized"),
+                admin,
+                id.clone(),
+                authorize,
+            ),
+            (),
+        );
+    }
+
     pub fn metadata(env: Env) -> TokenMetadata {
         TokenMetadata::load(&env)
     }
@@ -60,12 +95,12 @@ impl TokenContract {
         let max_supply = TokenMetadata::max_supply(env);
         supply += amount;
         if supply > max_supply {
-            panic!("total supply exceeds max supply");
+            TokenError::InternalError.panic(env);
         }
         Self::write_total_supply(env, supply);
         Self::receive_balance(env, &to, amount);
         env.events()
-            .publish((Symbol::new(env, "mint"), to.clone()), (to, amount));
+            .publish((symbol_short!("mint"), to.clone()), (to, amount));
     }
 
     pub fn burn_unchecked(env: &Env, from: Address, amount: i128) {
@@ -73,16 +108,29 @@ impl TokenContract {
         let supply = Self::read_total_supply(env) - amount;
         Self::write_total_supply(env, supply);
         env.events()
-            .publish((Symbol::new(env, "burn"), from.clone()), (from, amount));
+            .publish((symbol_short!("burn"), from.clone()), (from, amount));
     }
 
     pub fn transfer_unchecked(env: &Env, from: Address, to: Address, amount: i128) {
         Self::spend_balance(env, &from, amount);
         Self::receive_balance(env, &to, amount);
         env.events().publish(
-            (Symbol::new(env, "transfer"), from.clone()),
+            (symbol_short!("transfer"), from.clone()),
             (from, to, amount),
         );
+    }
+
+    fn is_authorized(env: &Env, id: &Address) -> bool {
+        let key = (Symbol::new(env, "authorized"), id.clone());
+        env.storage()
+            .persistent()
+            .get::<_, bool>(&key)
+            .unwrap_or(true)
+    }
+
+    fn write_authorized(env: &Env, id: &Address, authorized: bool) {
+        let key = (Symbol::new(env, "authorized"), id.clone());
+        env.storage().persistent().set(&key, &authorized);
     }
 
     pub fn read_balance(env: &Env, addr: &Address) -> i128 {
@@ -101,7 +149,7 @@ impl TokenContract {
     fn spend_balance(env: &Env, addr: &Address, amount: i128) {
         let balance = Self::read_balance(env, addr);
         if balance < amount {
-            panic!("insufficient balance");
+            TokenError::BalanceError.panic(env);
         }
         Self::write_balance(env, addr, balance - amount);
     }
