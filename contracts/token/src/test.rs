@@ -1,5 +1,5 @@
-use soroban_sdk::testutils;
-use soroban_sdk::{Address, Env, String};
+use soroban_sdk::testutils::{self, Events};
+use soroban_sdk::{symbol_short, vec, Address, Env, IntoVal, String, Symbol};
 
 use crate::token::{TokenContract, TokenContractClient};
 
@@ -152,4 +152,142 @@ fn test_non_admin_cannot_revoke() {
     let attacker = generate_address(&env);
     let (_id, client) = deploy_token(&env, &admin);
     client.set_authorized(&attacker, &false);
+}
+
+#[test]
+fn test_transfer_emits_sep41_event() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user1 = generate_address(&env);
+    let user2 = generate_address(&env);
+    let (id, client) = deploy_token(&env, &admin);
+    client.mint(&user1, &1000i128);
+    client.transfer(&user1, &user2, &600i128);
+    // `env.events().all()` reflects the last invocation, so the event must be
+    // asserted before issuing any further reads.
+    assert_eq!(
+        env.events().all(),
+        vec![
+            &env,
+            (
+                id,
+                vec![
+                    &env,
+                    symbol_short!("transfer").into_val(&env),
+                    user1.clone().into_val(&env),
+                    user2.clone().into_val(&env),
+                ],
+                600i128.into_val(&env),
+            ),
+        ]
+    );
+    assert_eq!(client.balance_of(&user1), 400);
+    assert_eq!(client.balance_of(&user2), 600);
+}
+
+#[test]
+fn test_mint_emits_sep41_event() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let (id, client) = deploy_token(&env, &admin);
+    client.mint(&user, &1000i128);
+    assert_eq!(
+        env.events().all(),
+        vec![
+            &env,
+            (
+                id,
+                vec![
+                    &env,
+                    symbol_short!("mint").into_val(&env),
+                    user.clone().into_val(&env),
+                ],
+                1000i128.into_val(&env),
+            ),
+        ]
+    );
+}
+
+#[test]
+fn test_burn_emits_sep41_event() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let (id, client) = deploy_token(&env, &admin);
+    client.mint(&user, &1000i128);
+    client.burn(&user, &300i128);
+    assert_eq!(
+        env.events().all(),
+        vec![
+            &env,
+            (
+                id,
+                vec![
+                    &env,
+                    symbol_short!("burn").into_val(&env),
+                    user.clone().into_val(&env),
+                ],
+                300i128.into_val(&env),
+            ),
+        ]
+    );
+}
+
+#[test]
+fn test_approve_emits_sep41_event() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let spender = generate_address(&env);
+    let (id, client) = deploy_token(&env, &admin);
+    client.mint(&user, &1000i128);
+    client.approve(&user, &spender, &500i128, &100u64);
+    assert_eq!(
+        env.events().all(),
+        vec![
+            &env,
+            (
+                id,
+                vec![
+                    &env,
+                    symbol_short!("approve").into_val(&env),
+                    user.clone().into_val(&env),
+                    spender.clone().into_val(&env),
+                ],
+                (500i128, 100u64).into_val(&env),
+            ),
+        ]
+    );
+}
+
+#[test]
+fn test_set_authorized_emits_event() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let (id, client) = deploy_token(&env, &admin);
+    client.set_authorized(&user, &false);
+    assert_eq!(
+        env.events().all(),
+        vec![
+            &env,
+            (
+                id,
+                vec![
+                    &env,
+                    Symbol::new(&env, "set_authorized").into_val(&env),
+                    admin.clone().into_val(&env),
+                    user.clone().into_val(&env),
+                    false.into_val(&env),
+                ],
+                ().into_val(&env),
+            ),
+        ]
+    );
 }

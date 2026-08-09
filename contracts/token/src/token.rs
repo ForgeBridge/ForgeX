@@ -46,7 +46,17 @@ impl TokenContract {
 
     pub fn approve(env: Env, from: Address, spender: Address, amount: i128, expiration: u64) {
         from.require_auth();
+        if !Self::is_authorized(&env, &from) {
+            TokenError::UnauthorizedError.panic(&env);
+        }
         TokenContract::write_allowance(&env, &from, &spender, amount, expiration);
+        // SEP-41 approve event: topics `["approve", from, spender]`, data
+        // `(amount, expiration_ledger)`. ForgeX tokens store a u64 deadline so
+        // the event carries the exact stored value.
+        env.events().publish(
+            (symbol_short!("approve"), from, spender),
+            (amount, expiration),
+        );
     }
 
     pub fn allowance(env: Env, from: Address, spender: Address) -> i128 {
@@ -99,25 +109,26 @@ impl TokenContract {
         }
         Self::write_total_supply(env, supply);
         Self::receive_balance(env, &to, amount);
+        // SEP-41 mint event: topics `["mint", to]`, data `amount`.
         env.events()
-            .publish((symbol_short!("mint"), to.clone()), (to, amount));
+            .publish((symbol_short!("mint"), to.clone()), amount);
     }
 
     pub fn burn_unchecked(env: &Env, from: Address, amount: i128) {
         Self::spend_balance(env, &from, amount);
         let supply = Self::read_total_supply(env) - amount;
         Self::write_total_supply(env, supply);
+        // SEP-41 burn event: topics `["burn", from]`, data `amount`.
         env.events()
-            .publish((symbol_short!("burn"), from.clone()), (from, amount));
+            .publish((symbol_short!("burn"), from.clone()), amount);
     }
 
     pub fn transfer_unchecked(env: &Env, from: Address, to: Address, amount: i128) {
         Self::spend_balance(env, &from, amount);
         Self::receive_balance(env, &to, amount);
-        env.events().publish(
-            (symbol_short!("transfer"), from.clone()),
-            (from, to, amount),
-        );
+        // SEP-41 transfer event: topics `["transfer", from, to]`, data `amount`.
+        env.events()
+            .publish((symbol_short!("transfer"), from, to), amount);
     }
 
     fn is_authorized(env: &Env, id: &Address) -> bool {
