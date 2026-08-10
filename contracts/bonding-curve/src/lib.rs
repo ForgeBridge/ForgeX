@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 
 mod curve;
-
+mod error;
 mod math;
 #[allow(dead_code)]
 mod pool;
@@ -10,3 +10,4 @@ mod pool;
 mod test;
 
 pub use curve::BondingCurveContract;
+pub use error::CurveError;
