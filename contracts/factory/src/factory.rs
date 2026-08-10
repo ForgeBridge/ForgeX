@@ -213,9 +213,12 @@ impl FactoryContract {
     }
 
     /// Returns a page of registered tokens, starting at `offset` and taking at
-    /// most `limit` entries. `offset` and `offset + limit` are saturated to the
-    /// registry size, so out-of-range windows simply return the available
-    /// tail. Publicly queryable.
+    /// most `limit` entries. Pages are produced over a stable ordering: records
+    /// are always returned in creation order, so paging with any window size
+    /// and concatenating the results reproduces the full registry exactly.
+    /// `offset` and `offset + limit` are saturated to the registry size, so
+    /// out-of-range windows simply return the available tail. Publicly
+    /// queryable.
     pub fn get_tokens_paginated(env: Env, offset: u64, limit: u64) -> Vec<TokenInfo> {
         Registry::paginated(&env, offset, limit)
     }

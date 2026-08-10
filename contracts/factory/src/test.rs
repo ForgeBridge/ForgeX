@@ -321,7 +321,77 @@ fn test_create_token_rejects_invalid_curve_params() {
 }
 
 #[test]
-fn test_get_tokens_paginated() {
+fn test_pagination_preserves_creation_order() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+
+    let names = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"];
+    for (i, name) in names.iter().enumerate() {
+        client.create_token(&make_params(
+            &env,
+            &registered_address(&env),
+            &registered_address(&env),
+            name,
+            &format!("S{i}"),
+        ));
+    }
+
+    let all = client.get_all_tokens();
+    assert_eq!(all.len(), 5);
+    for (i, name) in names.iter().enumerate() {
+        assert_eq!(
+            all.get(i as u32).unwrap().name,
+            String::from_str(&env, name)
+        );
+    }
+
+    // Paging with any window size reproduces the full creation order when
+    // concatenated.
+    let mut paged: soroban_sdk::Vec<crate::factory::TokenInfo> = soroban_sdk::Vec::new(&env);
+    for offset in [0u64, 2u64, 4u64] {
+        let page = client.get_tokens_paginated(&offset, &2u64);
+        for record in page {
+            paged.push_back(record);
+        }
+    }
+    assert_eq!(paged, all);
+}
+
+#[test]
+fn test_pagination_is_stable_across_window_sizes() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+
+    let names = ["A", "B", "C", "D", "E", "F", "G"];
+    for (i, name) in names.iter().enumerate() {
+        client.create_token(&make_params(
+            &env,
+            &registered_address(&env),
+            &registered_address(&env),
+            name,
+            &format!("S{i}"),
+        ));
+    }
+
+    // The whole registry, paged one-at-a-time, matches the whole registry
+    // paged all-at-once: ordering does not depend on the window size.
+    let all = client.get_all_tokens();
+    let mut first_of_each_page: soroban_sdk::Vec<crate::factory::TokenInfo> =
+        soroban_sdk::Vec::new(&env);
+    for i in 0u64..7 {
+        let page = client.get_tokens_paginated(&i, &1u64);
+        assert_eq!(page.len(), 1);
+        first_of_each_page.push_back(page.get(0).unwrap());
+    }
+    assert_eq!(first_of_each_page, all);
+}
+
+#[test]
+fn test_get_tokens_paginated_out_of_range() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = generate_address(&env);
@@ -340,8 +410,11 @@ fn test_get_tokens_paginated() {
         "T2",
         "T2",
     ));
-    let tokens = client.get_tokens_paginated(&0u64, &10u64);
-    assert_eq!(tokens.len(), 2);
+
+    // Offset beyond the end yields an empty page; a window crossing the end is
+    // saturated to the registry tail.
+    assert_eq!(client.get_tokens_paginated(&10u64, &2u64).len(), 0);
+    assert_eq!(client.get_tokens_paginated(&1u64, &5u64).len(), 1);
 }
 
 #[test]
