@@ -1,7 +1,8 @@
-use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env, String, Symbol};
+use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, String, Symbol};
 
 use crate::error::TokenError;
 use crate::metadata::TokenMetadata;
+use crate::upgrade::InterfaceVersion;
 
 #[contract]
 pub struct TokenContract;
@@ -16,7 +17,21 @@ impl TokenContract {
         decimals: u32,
         max_supply: i128,
     ) {
+        InterfaceVersion::initialize(&env);
         TokenMetadata::save(&env, admin, name, symbol, decimals, max_supply);
+    }
+
+    /// Returns the deployed interface and implementation version. Useful for
+    /// detecting upgrades on-chain and by tooling.
+    pub fn version(env: Env) -> InterfaceVersion {
+        InterfaceVersion::read(&env)
+    }
+
+    /// Admin-only upgrade of the contract implementation. The `new_wasm_hash`
+    /// must be the hash of a `forgex-token` wasm build that preserves the
+    /// existing stored interface.
+    pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) {
+        crate::upgrade::upgrade(&env, new_wasm_hash);
     }
 
     pub fn mint(env: Env, to: Address, amount: i128) {

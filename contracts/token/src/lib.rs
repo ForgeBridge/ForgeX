@@ -3,6 +3,7 @@
 mod error;
 mod metadata;
 mod token;
+mod upgrade;
 
 #[cfg(test)]
 mod test;
@@ -10,3 +11,4 @@ mod test;
 pub use error::TokenError;
 pub use metadata::TokenMetadata;
 pub use token::TokenContract;
+pub use upgrade::InterfaceVersion;

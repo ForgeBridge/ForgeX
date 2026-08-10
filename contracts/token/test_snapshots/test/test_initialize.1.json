@@ -82,6 +82,31 @@
                           }
                         ]
                       }
+                    },
+                    {
+                      "key": {
+                        "symbol": "token_version"
+                      },
+                      "val": {
+                        "map": [
+                          {
+                            "key": {
+                              "symbol": "implementation"
+                            },
+                            "val": {
+                              "u32": 3
+                            }
+                          },
+                          {
+                            "key": {
+                              "symbol": "interface"
+                            },
+                            "val": {
+                              "u32": 1
+                            }
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
