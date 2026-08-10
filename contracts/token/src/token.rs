@@ -182,6 +182,34 @@ impl TokenContract {
         Self::read_allowance(&env, &from, &spender)
     }
 
+    /// Transfers `amount` from `from` to `to`, consuming the allowance that
+    /// `spender` has set on `from`'s balance. Authorized by `spender` via
+    /// `spender.require_auth()`.
+    ///
+    /// The spender's allowance on `from` is decremented by `amount` as part of
+    /// the transfer, in line with SEP-41 semantics. A Requested amount larger
+    /// than the current allowance is refused with `AllowanceError` and nothing
+    /// changes (no partial decrement, no balance movement). Like [`transfer`],
+    /// this pauses, revoked parties, negative amounts, an insufficient
+    /// balance, and a failing or reentrant transfer hook are all reported as
+    /// `Err` rather than panicking.
+    pub fn transfer_from(
+        env: Env,
+        spender: Address,
+        from: Address,
+        to: Address,
+        amount: i128,
+    ) -> Result<i128, TokenError> {
+        Self::ensure_not_paused(&env)?;
+        spender.require_auth();
+        if !Self::is_authorized(&env, &from) || !Self::is_authorized(&env, &to) {
+            return Err(TokenError::UnauthorizedError);
+        }
+        Self::try_spend_allowance(&env, &from, &spender, amount)?;
+        Self::try_run_transfer_hook(&env, &from, &to, amount)?;
+        TokenContract::transfer_unchecked(&env, from, to, amount)
+    }
+
     /// Transfers contract ownership (the admin role) to `new_admin`. Admin
     /// only.
     ///
@@ -494,6 +522,25 @@ impl TokenContract {
     pub fn read_allowance(env: &Env, from: &Address, spender: &Address) -> i128 {
         let key = (from.clone(), spender.clone());
         env.storage().persistent().get(&key).unwrap_or(0)
+    }
+
+    /// Spends `amount` from `spender`'s allowance on `from`, decrementing the
+    /// stored allowance in place. Refuses with `AllowanceError` if the
+    /// allowance is insufficient, leaving both the allowance and any balances
+    /// untouched. The allowance can never go negative: a spend larger than the
+    /// allowance fails atomically instead of leaving a truncated allowance.
+    fn try_spend_allowance(
+        env: &Env,
+        from: &Address,
+        spender: &Address,
+        amount: i128,
+    ) -> Result<(), TokenError> {
+        let allowance = Self::read_allowance(env, from, spender);
+        if allowance < amount {
+            return Err(TokenError::AllowanceError);
+        }
+        Self::write_allowance(env, from, spender, allowance - amount, 0);
+        Ok(())
     }
 
     pub fn write_allowance(

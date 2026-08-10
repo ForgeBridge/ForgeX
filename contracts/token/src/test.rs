@@ -233,6 +233,190 @@ fn test_approve_and_allowance() {
 }
 
 #[test]
+fn test_transfer_from_consumes_allowance() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let spender = generate_address(&env);
+    let recipient = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+
+    client.mint(&user, &1000i128);
+    client.approve(&user, &spender, &500i128, &100u64);
+
+    // The spender moves 300 of the approved 500.
+    let moved = client.transfer_from(&spender, &user, &recipient, &300i128);
+    assert_eq!(moved, 300);
+    assert_eq!(client.allowance(&user, &spender), 200);
+
+    // The remainder can still be spent by the same spender.
+    client.transfer_from(&spender, &user, &recipient, &200i128);
+    assert_eq!(client.allowance(&user, &spender), 0);
+
+    // Balances settled exactly as in a direct transfer.
+    assert_eq!(client.balance_of(&user), 500);
+    assert_eq!(client.balance_of(&recipient), 500);
+
+    // The spender's own balance is untouched.
+    assert_eq!(client.balance_of(&spender), 0);
+}
+
+#[test]
+fn test_transfer_from_rejects_overspend_without_moving_funds() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let spender = generate_address(&env);
+    let recipient = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+
+    client.mint(&user, &1000i128);
+    client.approve(&user, &spender, &500i128, &100u64);
+
+    // Spending more than the approved allowance fails atomically: no partial
+    // decrement of the allowance and no balance movement.
+    let result = client.try_transfer_from(&spender, &user, &recipient, &501i128);
+    assert!(result.is_err());
+    assert_eq!(client.allowance(&user, &spender), 500);
+    assert_eq!(client.balance_of(&user), 1000);
+    assert_eq!(client.balance_of(&recipient), 0);
+
+    // A spend of exactly the allowance still succeeds afterwards.
+    client.transfer_from(&spender, &user, &recipient, &500i128);
+    assert_eq!(client.allowance(&user, &spender), 0);
+    assert_eq!(client.balance_of(&user), 500);
+    assert_eq!(client.balance_of(&recipient), 500);
+}
+
+#[test]
+fn test_transfer_from_rejects_zero_allowance() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let spender = generate_address(&env);
+    let recipient = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+
+    client.mint(&user, &1000i128);
+    // No approve call: the spender has no allowance at all.
+    assert!(client
+        .try_transfer_from(&spender, &user, &recipient, &1i128)
+        .is_err());
+    assert_eq!(client.balance_of(&user), 1000);
+    assert_eq!(client.balance_of(&recipient), 0);
+}
+
+#[test]
+fn test_transfer_from_rejects_paused_token() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let spender = generate_address(&env);
+    let recipient = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+
+    client.mint(&user, &1000i128);
+    client.approve(&user, &spender, &500i128, &100u64);
+    client.set_paused(&true);
+
+    assert!(client
+        .try_transfer_from(&spender, &user, &recipient, &100i128)
+        .is_err());
+    assert_eq!(client.allowance(&user, &spender), 500);
+    assert_eq!(client.balance_of(&user), 1000);
+    assert_eq!(client.balance_of(&recipient), 0);
+}
+
+#[test]
+fn test_transfer_from_rejects_revoked_parties() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let spender = generate_address(&env);
+    let recipient = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+
+    client.mint(&user, &1000i128);
+    client.approve(&user, &spender, &500i128, &100u64);
+
+    // A revoked source cannot be drained via transfer_from.
+    client.set_authorized(&user, &false);
+    assert!(client
+        .try_transfer_from(&spender, &user, &recipient, &100i128)
+        .is_err());
+    assert_eq!(client.allowance(&user, &spender), 500);
+
+    // A revoked recipient cannot receive funds via transfer_from.
+    client.set_authorized(&user, &true);
+    client.set_authorized(&recipient, &false);
+    assert!(client
+        .try_transfer_from(&spender, &user, &recipient, &100i128)
+        .is_err());
+    assert_eq!(client.allowance(&user, &spender), 500);
+}
+
+#[test]
+fn test_transfer_from_rejects_negative_amounts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let spender = generate_address(&env);
+    let recipient = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+
+    client.mint(&user, &1000i128);
+    client.approve(&user, &spender, &500i128, &100u64);
+
+    assert!(client
+        .try_transfer_from(&spender, &user, &recipient, &(-1i128))
+        .is_err());
+    assert_eq!(client.allowance(&user, &spender), 500);
+    assert_eq!(client.balance_of(&user), 1000);
+}
+
+#[test]
+fn test_transfer_from_emits_sep41_event() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let spender = generate_address(&env);
+    let recipient = generate_address(&env);
+    let (id, client) = deploy_token(&env, &admin);
+
+    client.mint(&user, &1000i128);
+    client.approve(&user, &spender, &500i128, &100u64);
+    client.transfer_from(&spender, &user, &recipient, &300i128);
+
+    // The transfer_from emits the standard SEP-41 `transfer` event (topics
+    // from/to), exactly as a direct transfer would.
+    assert_eq!(
+        env.events().all(),
+        soroban_sdk::vec![
+            &env,
+            (
+                id,
+                soroban_sdk::vec![
+                    &env,
+                    symbol_short!("transfer").into_val(&env),
+                    user.clone().into_val(&env),
+                    recipient.clone().into_val(&env),
+                ],
+                300i128.into_val(&env),
+            ),
+        ]
+    );
+    assert_eq!(client.balance_of(&user), 700);
+    assert_eq!(client.balance_of(&recipient), 300);
+}
+
+#[test]
 fn test_authorized_defaults_to_true() {
     let env = Env::default();
     env.mock_all_auths();
