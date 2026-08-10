@@ -1,5 +1,5 @@
-use soroban_sdk::testutils;
-use soroban_sdk::{Address, Env, String};
+use soroban_sdk::testutils::{self, Events};
+use soroban_sdk::{Address, Env, IntoVal, String, Symbol};
 
 use crate::factory::{CurveParams, FactoryContract, FactoryContractClient};
 
@@ -43,6 +43,60 @@ fn test_create_token() {
     };
     let (_token_id, _curve_id) = client.create_token(&params);
     assert_eq!(client.get_token_count(), 1);
+}
+
+#[test]
+fn test_token_created_emits_full_details() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (id, client) = deploy_factory(&env, &admin);
+    let params = crate::factory::CreateTokenParams {
+        name: String::from_str(&env, "Test Token"),
+        symbol: String::from_str(&env, "TEST"),
+        decimals: 7u32,
+        max_supply: 10_000_000_000_000_000i128,
+        image_uri: String::from_str(&env, "ipfs://Qmtest"),
+        description: String::from_str(&env, "A test token"),
+        curve_params: CurveParams {
+            initial_price: 100i128,
+            steepness: 1i128,
+            reserve_target: 5_000_000_000_000i128,
+        },
+    };
+    client.create_token(&params);
+
+    let expected = crate::factory::TokenInfo {
+        token_id: id.clone(),
+        curve_id: id.clone(),
+        creator: admin.clone(),
+        name: String::from_str(&env, "Test Token"),
+        symbol: String::from_str(&env, "TEST"),
+        decimals: 7u32,
+        max_supply: 10_000_000_000_000_000i128,
+        image_uri: String::from_str(&env, "ipfs://Qmtest"),
+        description: String::from_str(&env, "A test token"),
+        created_at: env.ledger().timestamp(),
+    };
+
+    // The `TokenCreated` event carries the full registry record as data,
+    // keyed by the creator and the deployed token address.
+    assert_eq!(
+        env.events().all(),
+        soroban_sdk::vec![
+            &env,
+            (
+                id.clone(),
+                soroban_sdk::vec![
+                    &env,
+                    Symbol::new(&env, "TokenCreated").into_val(&env),
+                    admin.clone().into_val(&env),
+                    id.clone().into_val(&env),
+                ],
+                expected.into_val(&env),
+            ),
+        ]
+    );
 }
 
 #[test]
