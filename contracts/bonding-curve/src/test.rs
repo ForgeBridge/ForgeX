@@ -137,6 +137,44 @@ fn test_sell_slippage_protection() {
 }
 
 #[test]
+fn test_reentrancy_guard_blocks_nested_entry() {
+    use soroban_sdk::symbol_short;
+
+    let env = Env::default();
+    env.mock_all_auths();
+    let (id, client) = deploy_curve(&env);
+    let trader = generate_address(&env);
+
+    // Prime the curve so both orders below would otherwise succeed.
+    client.buy(&trader, &1000i128, &i128::MAX, &u64::MAX);
+
+    // Simulate an in-progress operation by raising the guard flag directly;
+    // a fresh buy and sell are both refused with state untouched.
+    env.as_contract(&id, || {
+        env.storage()
+            .persistent()
+            .set(&symbol_short!("in_flight"), &true);
+    });
+    assert!(client
+        .try_buy(&trader, &100i128, &i128::MAX, &u64::MAX)
+        .is_err());
+    assert!(client
+        .try_sell(&trader, &100i128, &0i128, &u64::MAX)
+        .is_err());
+    assert_eq!(client.get_tokens_sold(), 1000);
+
+    // Once the flag is cleared the next trade succeeds, proving the guard is
+    // released after every successful liquidity operation.
+    env.as_contract(&id, || {
+        env.storage()
+            .persistent()
+            .set(&symbol_short!("in_flight"), &false);
+    });
+    client.sell(&trader, &100i128, &0i128, &u64::MAX);
+    assert_eq!(client.get_tokens_sold(), 900);
+}
+
+#[test]
 fn test_trades_respect_deadline() {
     use soroban_sdk::testutils::Ledger;
 

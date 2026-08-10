@@ -1,4 +1,6 @@
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String};
+use soroban_sdk::{
+    contract, contractimpl, contracttype, symbol_short, Address, Env, String, Symbol,
+};
 
 use crate::math::{calculate_buy_cost, calculate_price, calculate_sell_payout};
 
@@ -43,6 +45,8 @@ pub struct CurveInfo {
 #[contract]
 pub struct BondingCurveContract;
 
+const IN_FLIGHT: Symbol = symbol_short!("in_flight");
+
 #[contractimpl]
 impl BondingCurveContract {
     /// Configures the curve for a token. Must be called once, by the
@@ -70,6 +74,7 @@ impl BondingCurveContract {
         if env.ledger().timestamp() > deadline {
             panic!("bonding curve: buy deadline expired");
         }
+        Self::enter(&env);
         if amount_out <= 0 {
             panic!("bonding curve: buy amount must be positive");
         }
@@ -99,6 +104,7 @@ impl BondingCurveContract {
             (String::from_str(&env, "Buy"), buyer.clone()),
             (buyer.clone(), amount_out, cost, new_price, new_reserve),
         );
+        Self::exit(&env);
         cost
     }
 
@@ -126,6 +132,7 @@ impl BondingCurveContract {
         if env.ledger().timestamp() > deadline {
             panic!("bonding curve: sell deadline expired");
         }
+        Self::enter(&env);
         if amount_in <= 0 {
             panic!("bonding curve: sell amount must be positive");
         }
@@ -159,6 +166,7 @@ impl BondingCurveContract {
             (String::from_str(&env, "Sell"), seller.clone()),
             (seller.clone(), amount_in, payout, new_price, new_reserve),
         );
+        Self::exit(&env);
         payout
     }
 
@@ -214,5 +222,21 @@ impl BondingCurveContract {
             market_cap,
             admin,
         }
+    }
+}
+
+impl BondingCurveContract {
+    /// Raises the reentrancy flag, refusing entry if the guard is already up.
+    fn enter(env: &Env) {
+        let in_flight: bool = env.storage().persistent().get(&IN_FLIGHT).unwrap_or(false);
+        if in_flight {
+            panic!("bonding curve: reentrancy guard triggered");
+        }
+        env.storage().persistent().set(&IN_FLIGHT, &true);
+    }
+
+    /// Clears the reentrancy flag once a liquidity operation completes.
+    fn exit(env: &Env) {
+        env.storage().persistent().set(&IN_FLIGHT, &false);
     }
 }
