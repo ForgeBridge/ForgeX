@@ -153,6 +153,20 @@ impl FactoryContract {
         Registry::get(&env, &token_id)
     }
 
+    /// Returns metadata for the token whose name equals `name`. Publicly
+    /// queryable. Token names are unique in the registry, so at most one token
+    /// can match. Returns `TokenNotFound` if no token has that name.
+    pub fn get_token_by_name(env: Env, name: String) -> Result<TokenInfo, ContractError> {
+        Registry::get_by_name(&env, &name).ok_or(ContractError::TokenNotFound)
+    }
+
+    /// Returns metadata for the token whose symbol equals `symbol`. Publicly
+    /// queryable. Token symbols are unique in the registry, so at most one
+    /// token can match. Returns `TokenNotFound` if no token has that symbol.
+    pub fn get_token_by_symbol(env: Env, symbol: String) -> Result<TokenInfo, ContractError> {
+        Registry::get_by_symbol(&env, &symbol).ok_or(ContractError::TokenNotFound)
+    }
+
     /// Returns how many tokens have been registered so far. Publicly
     /// queryable.
     pub fn get_token_count(env: Env) -> u64 {

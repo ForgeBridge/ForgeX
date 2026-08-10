@@ -249,6 +249,51 @@ fn test_get_tokens_paginated() {
 }
 
 #[test]
+fn test_get_token_by_name() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let token = registered_address(&env);
+    let curve = registered_address(&env);
+    client.create_token(&make_params(&env, &token, &curve, "Alpha", "ALPHA"));
+
+    let found = client.get_token_by_name(&String::from_str(&env, "Alpha"));
+    assert_eq!(found.token_id, token);
+    assert_eq!(found.curve_id, curve);
+
+    assert_eq!(
+        client
+            .try_get_token_by_name(&String::from_str(&env, "Unknown"))
+            .unwrap_err()
+            .unwrap(),
+        ContractError::TokenNotFound
+    );
+}
+
+#[test]
+fn test_get_token_by_symbol() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let token = registered_address(&env);
+    let curve = registered_address(&env);
+    client.create_token(&make_params(&env, &token, &curve, "Alpha", "ALPHA"));
+
+    let found = client.get_token_by_symbol(&String::from_str(&env, "ALPHA"));
+    assert_eq!(found.token_id, token);
+
+    assert_eq!(
+        client
+            .try_get_token_by_symbol(&String::from_str(&env, "ZZZ"))
+            .unwrap_err()
+            .unwrap(),
+        ContractError::TokenNotFound
+    );
+}
+
+#[test]
 fn test_token_count_tracks_registrations() {
     let env = Env::default();
     env.mock_all_auths();
