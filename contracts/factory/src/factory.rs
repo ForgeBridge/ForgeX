@@ -1,12 +1,11 @@
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Symbol, Vec};
 
-/// Parameters for the bonding curve attached to a new token. The curve price
-/// is derived from `initial_price` scaled by `steepness` as minted supply
-/// (`tokens_sold`) grows; `reserve_target` is informational metadata.
+use crate::error::ContractError;
+
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct CurveParams {
-    /// Price of the first token unit, in the order of 1/SCALE precision.
+    /// Current price of the first token unit, in 1/SCALE precision.
     pub initial_price: i128,
     /// Growth steepness of the exponential curve, scaled by the same factor.
     pub steepness: i128,
@@ -14,10 +13,15 @@ pub struct CurveParams {
     pub reserve_target: i128,
 }
 
-/// Everything needed to register a new token through [`FactoryContract::create_token`].
+/// Everything needed to register a new token through
+/// [`FactoryContract::create_token`].
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct CreateTokenParams {
+    /// Address of the already-deployed token contract to register.
+    pub token_id: Address,
+    /// Address of the already-deployed bonding curve contract to register.
+    pub curve_id: Address,
     /// Display name of the token (1-32 bytes).
     pub name: String,
     /// Ticker symbol of the token (1-32 bytes).
@@ -41,10 +45,9 @@ pub struct CreateTokenParams {
 pub struct TokenInfo {
     /// Address of the deployed token contract.
     pub token_id: Address,
-    /// Address of the deployed bonding curve contract (currently the same as
-    /// `token_id`).
+    /// Address of the deployed bonding curve contract.
     pub curve_id: Address,
-    /// Address that created (and therefore administer) the token.
+    /// Address that created (and therefore administers) the token.
     pub creator: Address,
     /// Display name of the token.
     pub name: String,
@@ -79,32 +82,42 @@ impl FactoryContract {
     /// The token metadata is validated against the same constraints the token
     /// contract enforces (1-32 byte name and symbol, decimals 0-255, a
     /// non-negative max supply) so the registry can never hold a record that
-    /// could not exist as a real token. Emits a `TokenCreated` event carrying
-    /// the token and curve addresses.
-    pub fn create_token(env: Env, params: CreateTokenParams) -> (Address, Address) {
+    /// could not exist as a real token. Registers the already-deployed token
+    /// and bonding curve contract addresses supplied in `params`. A duplicate
+    /// of an existing token (same address, name, or symbol) is refused with
+    /// `TokenExists` and changes nothing. Emits a `TokenCreated` event
+    /// carrying the full registry record, keyed by creator and token address.
+    pub fn create_token(
+        env: Env,
+        params: CreateTokenParams,
+    ) -> Result<(Address, Address), ContractError> {
         let admin: Address = env.storage().instance().get(&"admin").unwrap();
         admin.require_auth();
         // Mirror the token contract's SEP-41 metadata validation so the
         // registry never holds records that could not be a real token.
         if params.name.is_empty() || params.name.len() > 32 {
-            panic!("factory: token name must be 1-32 bytes");
+            return Err(ContractError::InvalidMetadata);
         }
         if params.symbol.is_empty() || params.symbol.len() > 32 {
-            panic!("factory: token symbol must be 1-32 bytes");
+            return Err(ContractError::InvalidMetadata);
         }
         if params.decimals > 255 {
-            panic!("factory: token decimals must be 0-255");
+            return Err(ContractError::InvalidMetadata);
         }
         if params.max_supply < 0 {
-            panic!("factory: token max supply cannot be negative");
+            return Err(ContractError::InvalidMetadata);
+        }
+        if Registry::has(&env, &params.token_id)
+            || Registry::has_name(&env, &params.name)
+            || Registry::has_symbol(&env, &params.symbol)
+        {
+            return Err(ContractError::TokenExists);
         }
         let creator = admin.clone();
         let timestamp = env.ledger().timestamp();
-        let token_id = env.current_contract_address();
-        let curve_id = token_id.clone();
         let info = TokenInfo {
-            token_id: token_id.clone(),
-            curve_id: curve_id.clone(),
+            token_id: params.token_id.clone(),
+            curve_id: params.curve_id.clone(),
             creator,
             name: params.name,
             symbol: params.symbol,
@@ -121,11 +134,11 @@ impl FactoryContract {
             (
                 Symbol::new(&env, "TokenCreated"),
                 info.creator.clone(),
-                token_id.clone(),
+                params.token_id.clone(),
             ),
             info,
         );
-        (token_id, curve_id)
+        Ok((params.token_id, params.curve_id))
     }
 
     /// Returns metadata for every token registered so far, in creation order.
@@ -134,10 +147,10 @@ impl FactoryContract {
         Registry::all(&env)
     }
 
-    /// Returns metadata for a single token. Publicly queryable. Panics if no
-    /// token with that address exists in the registry.
-    pub fn get_token(env: Env, token_id: Address) -> TokenInfo {
-        Registry::get(&env, token_id)
+    /// Returns metadata for a single token. Publicly queryable. Returns
+    /// `TokenNotFound` if no token with that address is registered.
+    pub fn get_token(env: Env, token_id: Address) -> Result<TokenInfo, ContractError> {
+        Registry::get(&env, &token_id)
     }
 
     /// Returns how many tokens have been registered so far. Publicly
@@ -182,13 +195,38 @@ impl Registry {
             .unwrap_or(Vec::new(env))
     }
 
-    /// Returns the record for `token_id`. Panics if it is not registered.
-    pub fn get(env: &Env, token_id: Address) -> TokenInfo {
-        let tokens = Self::all(env);
-        tokens
+    /// Returns the record for `token_id`, or `TokenNotFound` if it is not
+    /// registered.
+    pub fn get(env: &Env, token_id: &Address) -> Result<TokenInfo, ContractError> {
+        Self::all(env)
             .into_iter()
-            .find(|t| t.token_id == token_id)
-            .expect("token not found")
+            .find(|t| &t.token_id == token_id)
+            .ok_or(ContractError::TokenNotFound)
+    }
+
+    /// Returns the record for `name`, if one is registered.
+    pub fn get_by_name(env: &Env, name: &String) -> Option<TokenInfo> {
+        Self::all(env).into_iter().find(|t| &t.name == name)
+    }
+
+    /// Returns the record for `symbol`, if one is registered.
+    pub fn get_by_symbol(env: &Env, symbol: &String) -> Option<TokenInfo> {
+        Self::all(env).into_iter().find(|t| &t.symbol == symbol)
+    }
+
+    /// Returns whether a token with `token_id` is registered.
+    pub fn has(env: &Env, token_id: &Address) -> bool {
+        Self::get(env, token_id).is_ok()
+    }
+
+    /// Returns whether a token named `name` is registered.
+    pub fn has_name(env: &Env, name: &String) -> bool {
+        Self::get_by_name(env, name).is_some()
+    }
+
+    /// Returns whether a token with symbol `symbol` is registered.
+    pub fn has_symbol(env: &Env, symbol: &String) -> bool {
+        Self::get_by_symbol(env, symbol).is_some()
     }
 
     /// Returns the number of registered tokens.
