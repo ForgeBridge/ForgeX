@@ -1,5 +1,7 @@
 use soroban_sdk::testutils::{self, Events};
-use soroban_sdk::{symbol_short, Address, Bytes, BytesN, Env, IntoVal, String, Symbol, Val};
+use soroban_sdk::{
+    contract, contractimpl, symbol_short, Address, Bytes, BytesN, Env, IntoVal, String, Symbol, Val,
+};
 
 use crate::token::{TokenContract, TokenContractArgs, TokenContractClient};
 use crate::upgrade::InterfaceVersion;
@@ -24,6 +26,62 @@ fn deploy_token<'a>(env: &'a Env, admin: &Address) -> (Address, TokenContractCli
 }
 
 #[test]
+fn test_constructor_rejects_invalid_metadata() {
+    let env = Env::default();
+    let admin = generate_address(&env);
+    let long_name = String::from_str(&env, &"n".repeat(33));
+    let long_symbol = String::from_str(&env, &"s".repeat(33));
+    let ok: i32 = 0;
+
+    // Runs `register` and captures the panic (registration of an invalid
+    // constructor aborts the deploy), returning false when it panics.
+    let rejecting = |name: String, symbol: String, decimals: u32| -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            env.register(
+                TokenContract,
+                TokenContractArgs::__constructor(
+                    &admin,
+                    &name,
+                    &symbol,
+                    &decimals,
+                    &10_000_000_000_000_000i128,
+                ),
+            );
+            ok
+        }))
+        .is_err()
+    };
+
+    // Empty name / symbol, and over-long name / symbol are all rejected.
+    assert!(rejecting(
+        String::from_str(&env, ""),
+        String::from_str(&env, "T"),
+        7
+    ));
+    assert!(rejecting(
+        String::from_str(&env, "T"),
+        String::from_str(&env, ""),
+        7
+    ));
+    assert!(rejecting(long_name, String::from_str(&env, "T"), 7));
+    assert!(rejecting(String::from_str(&env, "T"), long_symbol, 7));
+
+    // Decimals outside 0-255 are rejected.
+    assert!(rejecting(
+        String::from_str(&env, "T"),
+        String::from_str(&env, "T"),
+        256
+    ));
+
+    // And a valid token still deploys.
+    assert!(!rejecting(
+        String::from_str(&env, "T"),
+        String::from_str(&env, "T"),
+        7
+    ));
+}
+
+#[test]
 fn test_constructor_initializes_metadata() {
     let env = Env::default();
     let admin = generate_address(&env);
@@ -32,6 +90,19 @@ fn test_constructor_initializes_metadata() {
     assert_eq!(meta.name, String::from_str(&env, "Test Token"));
     assert_eq!(meta.symbol, String::from_str(&env, "TEST"));
     assert_eq!(meta.decimals, 7);
+}
+
+// SEP-41 requires the three fixed-function queries to be individually
+// callable, matching the fields of `metadata`.
+#[test]
+fn test_sep41_fixed_function_queries() {
+    let env = Env::default();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    assert_eq!(client.name(), String::from_str(&env, "Test Token"));
+    assert_eq!(client.symbol(), String::from_str(&env, "TEST"));
+    assert_eq!(client.decimals(), 7);
+    // The queries are usable without any authorization.
 }
 
 #[test]
@@ -43,6 +114,63 @@ fn test_mint_and_balance() {
     let (_id, client) = deploy_token(&env, &admin);
     client.mint(&user, &1000i128);
     assert_eq!(client.balance_of(&user), 1000);
+}
+
+#[test]
+fn test_balance_and_supply_are_public_queries() {
+    // No `mock_all_auths`: these reads must succeed for an arbitrary caller.
+    let env = Env::default();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    assert_eq!(client.balance_of(&user), 0);
+    assert_eq!(client.total_supply(), 0);
+    // Minting still requires authorization; the reads themselves do not.
+    env.mock_all_auths();
+    client.mint(&user, &1000i128);
+    assert_eq!(client.balance_of(&user), 1000);
+    assert_eq!(client.total_supply(), 1000);
+}
+
+#[test]
+fn test_set_paused_requires_admin() {
+    let env = Env::default();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    // No auth mocked: only the admin may pause, so this fails for the deployer
+    // test account.
+    assert!(client.try_set_paused(&true).is_err());
+    assert!(!client.paused());
+}
+
+#[test]
+fn test_paused_blocks_value_moving_operations() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user1 = generate_address(&env);
+    let user2 = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    client.mint(&user1, &1000i128);
+    assert!(!client.paused());
+
+    client.set_paused(&true);
+    assert!(client.paused());
+
+    // transfer, mint, burn and approve are all refused while paused.
+    assert!(client.try_transfer(&user1, &user2, &100i128).is_err());
+    assert!(client.try_mint(&user2, &100i128).is_err());
+    assert!(client.try_burn(&user1, &100i128).is_err());
+    assert!(client.try_approve(&user1, &user2, &100i128, &200).is_err());
+
+    // Reads remain available and state is untouched.
+    assert_eq!(client.balance_of(&user1), 1000);
+    assert_eq!(client.total_supply(), 1000);
+
+    // Unpausing restores normal operation.
+    client.set_paused(&false);
+    client.transfer(&user1, &user2, &100i128);
+    assert_eq!(client.balance_of(&user2), 100);
 }
 
 #[test]
@@ -408,4 +536,311 @@ fn test_token_cannot_be_reinitialized_via_public_entry_point() {
         ],
     );
     assert!(result.is_err());
+}
+
+#[contract]
+struct RecordingHook;
+
+#[contractimpl]
+impl RecordingHook {
+    pub fn hook(env: Env, from: Address, to: Address, amount: i128) {
+        env.storage().instance().set(&symbol_short!("from"), &from);
+        env.storage().instance().set(&symbol_short!("to"), &to);
+        env.storage()
+            .instance()
+            .set(&symbol_short!("amnt"), &amount);
+        let count: u32 = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("count"))
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&symbol_short!("count"), &(count + 1));
+    }
+
+    // (from, to, amount) of the most recent hook invocation.
+    pub fn last_call(env: Env) -> (Address, Address, i128) {
+        let from: Address = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("from"))
+            .unwrap();
+        let to: Address = env.storage().instance().get(&symbol_short!("to")).unwrap();
+        let amount: i128 = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("amnt"))
+            .unwrap();
+        (from, to, amount)
+    }
+
+    pub fn calls(env: Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&symbol_short!("count"))
+            .unwrap_or(0)
+    }
+}
+
+#[test]
+fn test_transfer_blocked_while_hook_in_flight() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user1 = generate_address(&env);
+    let user2 = generate_address(&env);
+    let (id, client) = deploy_token(&env, &admin);
+
+    client.set_transfer_hook(&Some(env.register(RecordingHook, ())));
+    client.mint(&user1, &1000i128);
+
+    // Simulate a hook that is still mid-flight by raising the token's in-flight
+    // guard directly in the token's storage (as a hook would see it while a
+    // transfer is executing).
+    env.as_contract(&id, || {
+        env.storage()
+            .persistent()
+            .set(&symbol_short!("in_hook"), &true);
+    });
+
+    // The guard refuses the transfer and no tokens move.
+    let result = client.try_transfer(&user1, &user2, &100i128);
+    assert!(result.is_err());
+    assert_eq!(client.balance_of(&user1), 1000);
+    assert_eq!(client.balance_of(&user2), 0);
+}
+
+#[test]
+fn test_set_transfer_hook_requires_admin() {
+    let env = Env::default();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    let hook = env.register(RecordingHook, ());
+    // No auth mocked: the caller is the deployer test account, not the token
+    // admin, so the admin `require_auth` fails. `try_` captures the failure.
+    let result = client.try_set_transfer_hook(&Some(hook));
+    assert!(result.is_err());
+    assert_eq!(client.get_transfer_hook(), None);
+}
+
+#[test]
+fn test_transfer_invokes_hook_with_args() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user1 = generate_address(&env);
+    let user2 = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    let hook_address = env.register(RecordingHook, ());
+    let hook = RecordingHookClient::new(&env, &hook_address);
+
+    client.set_transfer_hook(&Some(hook_address.clone()));
+    assert_eq!(client.get_transfer_hook(), Some(hook_address.clone()));
+
+    client.mint(&user1, &1000i128);
+    client.transfer(&user1, &user2, &600i128);
+
+    // The hook saw exactly one (from, to, amount) and balances settled.
+    assert_eq!(hook.calls(), 1);
+    assert_eq!(hook.last_call(), (user1.clone(), user2.clone(), 600));
+    assert_eq!(client.balance_of(&user1), 400);
+    assert_eq!(client.balance_of(&user2), 600);
+}
+
+#[test]
+fn test_clearing_transfer_hook_disables_it() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user1 = generate_address(&env);
+    let user2 = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    let hook_address = env.register(RecordingHook, ());
+    let hook = RecordingHookClient::new(&env, &hook_address);
+
+    client.set_transfer_hook(&Some(hook_address.clone()));
+    client.mint(&user1, &1000i128);
+    client.transfer(&user1, &user2, &100i128);
+    assert_eq!(hook.calls(), 1);
+
+    client.set_transfer_hook(&None);
+    assert_eq!(client.get_transfer_hook(), None);
+    client.transfer(&user1, &user2, &100i128);
+    assert_eq!(hook.calls(), 1); // hook no longer invoked
+}
+
+#[test]
+fn test_transfer_hook_cannot_be_the_token_itself() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (id, client) = deploy_token(&env, &admin);
+    // A self-hook would recurse on every transfer; it must be rejected.
+    let result = client.try_set_transfer_hook(&Some(id));
+    assert!(result.is_err());
+    assert_eq!(client.get_transfer_hook(), None);
+}
+
+#[test]
+fn test_mint_rejects_non_positive_amounts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    assert!(client.try_mint(&user, &0i128).is_err());
+    assert!(client.try_mint(&user, &(-5i128)).is_err());
+    assert_eq!(client.balance_of(&user), 0);
+}
+
+#[test]
+fn test_burn_rejects_non_positive_amounts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    client.mint(&user, &100i128);
+    assert!(client.try_burn(&user, &0i128).is_err());
+    assert!(client.try_burn(&user, &(-5i128)).is_err());
+    assert_eq!(client.balance_of(&user), 100);
+}
+
+#[test]
+fn test_transfer_rejects_negative_amounts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user1 = generate_address(&env);
+    let user2 = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    client.mint(&user1, &100i128);
+    assert!(client.try_transfer(&user1, &user2, &(-1i128)).is_err());
+    // Neither balance changed: the negative amount must not mint or move funds.
+    assert_eq!(client.balance_of(&user1), 100);
+    assert_eq!(client.balance_of(&user2), 0);
+}
+
+#[test]
+fn test_approve_rejects_negative_amounts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    assert!(client.try_approve(&user, &user, &(-1i128), &200).is_err());
+    assert_eq!(client.allowance(&user, &user), 0);
+}
+
+#[test]
+fn test_set_admin_transfers_ownership() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let new_admin = generate_address(&env);
+    let user = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+
+    client.set_admin(&new_admin);
+    assert_eq!(client.metadata().admin, new_admin);
+
+    // The new admin can still operate the contract.
+    client.mint(&user, &100i128);
+    assert_eq!(client.balance_of(&user), 100);
+
+    // The old admin can no longer mint (only the stored admin passes the
+    // `require_auth` well, but under mock_auths both sign; the authoritative
+    // check is the persisted metadata above).
+    assert_eq!(client.metadata().admin, new_admin);
+}
+
+#[test]
+fn test_set_admin_requires_admin_and_valid_target() {
+    let env = Env::default();
+    let admin = generate_address(&env);
+    let attacker = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+
+    // Non-admin cannot transfer ownership.
+    assert!(client.try_set_admin(&attacker).is_err());
+
+    // Admin cannot hand ownership to a revoked (unauthorized) address.
+    env.mock_all_auths();
+    client.set_authorized(&attacker, &false);
+    assert!(client.try_set_admin(&attacker).is_err());
+    assert_eq!(client.metadata().admin, admin);
+}
+
+#[test]
+fn test_admin_transfer_moves_tokens() {
+    use soroban_sdk::testutils::Events;
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user1 = generate_address(&env);
+    let user2 = generate_address(&env);
+    let (id, client) = deploy_token(&env, &admin);
+    client.mint(&user1, &1000i128);
+
+    client.admin_transfer(&user1, &user2, &300i128);
+
+    // The last invocation emitted both the standard `transfer` event and the
+    // attributable `admin_transfer` event. Read the buffer before issuing any
+    // further calls, since later invocations replace it.
+    assert_eq!(
+        env.events().all(),
+        soroban_sdk::vec![
+            &env,
+            (
+                id.clone(),
+                soroban_sdk::vec![
+                    &env,
+                    symbol_short!("transfer").into_val(&env),
+                    user1.clone().into_val(&env),
+                    user2.clone().into_val(&env),
+                ],
+                300i128.into_val(&env),
+            ),
+            (
+                id,
+                soroban_sdk::vec![
+                    &env,
+                    Symbol::new(&env, "admin_transfer").into_val(&env),
+                    user1.clone().into_val(&env),
+                    user2.clone().into_val(&env),
+                ],
+                300i128.into_val(&env),
+            ),
+        ]
+    );
+
+    // Balances settled as expected.
+    assert_eq!(client.balance_of(&user1), 700);
+    assert_eq!(client.balance_of(&user2), 300);
+}
+
+#[test]
+fn test_admin_transfer_requires_admin_and_valid_destination() {
+    let env = Env::default();
+    let admin = generate_address(&env);
+    let user1 = generate_address(&env);
+    let user2 = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+
+    // Without mock_auths the admin signature is missing, so the rescue
+    // transfer is refused.
+    assert!(client.try_admin_transfer(&user1, &user2, &100i128).is_err());
+
+    // A revoked destination cannot receive an admin transfer.
+    env.mock_all_auths();
+    client.mint(&user1, &1000i128);
+    client.set_authorized(&user2, &false);
+    assert!(client.try_admin_transfer(&user1, &user2, &100i128).is_err());
+    assert_eq!(client.balance_of(&user1), 1000);
+
+    // Negative amounts are rejected.
+    assert!(client
+        .try_admin_transfer(&user1, &user2, &(-1i128))
+        .is_err());
 }

@@ -2,11 +2,19 @@ use crate::curve::CurveParams;
 
 const SCALE: i128 = 10_000_000;
 
+/// Panics on overflow so that a curve computation that exceeds the i128 range
+/// fails the transaction closed instead of silently wrapping. The curve does
+/// not have a structured error enum of its own, so the message names the
+/// failing computation.
+fn need(v: Option<i128>, what: &str) -> i128 {
+    v.unwrap_or_else(|| panic!("bonding curve {what} overflow"))
+}
+
 pub fn calculate_price(params: &CurveParams, tokens_sold: i128) -> i128 {
     // P(S) = P₀ × e^(k × S)
-    let exponent = params.steepness * tokens_sold / SCALE;
+    let exponent = need(params.steepness.checked_mul(tokens_sold), "price exponent") / SCALE;
     let exp_val = exp_approx(exponent);
-    params.initial_price * exp_val / SCALE
+    need(params.initial_price.checked_mul(exp_val), "price") / SCALE
 }
 
 pub fn calculate_buy_cost(params: &CurveParams, s1: i128, s2: i128) -> i128 {
@@ -14,10 +22,14 @@ pub fn calculate_buy_cost(params: &CurveParams, s1: i128, s2: i128) -> i128 {
     if s1 == s2 {
         return 0;
     }
-    let exp_s1 = exp_approx(params.steepness * s1 / SCALE);
-    let exp_s2 = exp_approx(params.steepness * s2 / SCALE);
-    let diff = exp_s2 - exp_s1;
-    (params.initial_price / params.steepness) * diff / SCALE
+    let exp_s1 = exp_approx(need(params.steepness.checked_mul(s1), "cost exponent") / SCALE);
+    let exp_s2 = exp_approx(need(params.steepness.checked_mul(s2), "cost exponent") / SCALE);
+    let diff = need(exp_s2.checked_sub(exp_s1), "cost diff");
+    let ratio = need(
+        params.initial_price.checked_div(params.steepness),
+        "cost ratio",
+    );
+    need(ratio.checked_mul(diff), "cost") / SCALE
 }
 
 pub fn calculate_sell_payout(params: &CurveParams, s1: i128, s2: i128) -> i128 {
@@ -33,8 +45,8 @@ fn exp_approx(x: i128) -> i128 {
     let mut result = SCALE;
     let mut term = SCALE;
     for i in 1..=15 {
-        term = term * x / (SCALE * i as i128);
-        result += term;
+        term = need(term.checked_mul(x), "exp term") / (SCALE * i as i128);
+        result = need(result.checked_add(term), "exp");
         if term == 0 {
             break;
         }

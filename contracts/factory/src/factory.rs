@@ -47,6 +47,17 @@ impl FactoryContract {
     pub fn create_token(env: Env, params: CreateTokenParams) -> (Address, Address) {
         let admin: Address = env.storage().instance().get(&"admin").unwrap();
         admin.require_auth();
+        // Mirror the token contract's SEP-41 metadata validation so the
+        // registry never holds records that could not be a real token.
+        if params.name.is_empty() || params.name.len() > 32 {
+            panic!("factory: token name must be 1-32 bytes");
+        }
+        if params.symbol.is_empty() || params.symbol.len() > 32 {
+            panic!("factory: token symbol must be 1-32 bytes");
+        }
+        if params.decimals > 255 {
+            panic!("factory: token decimals must be 0-255");
+        }
         let creator = admin.clone();
         let timestamp = env.ledger().timestamp();
         let token_id = env.current_contract_address();
@@ -100,7 +111,8 @@ impl Registry {
         tokens.push_back(info);
         env.storage().persistent().set(&"tokens", &tokens);
         let count: u64 = env.storage().persistent().get(&"count").unwrap_or(0);
-        env.storage().persistent().set(&"count", &(count + 1));
+        let new_count = count.checked_add(1).expect("factory: token count overflow");
+        env.storage().persistent().set(&"count", &new_count);
     }
 
     pub fn all(env: &Env) -> Vec<TokenInfo> {
@@ -126,7 +138,12 @@ impl Registry {
         let all = Self::all(env);
         let total = all.len();
         let start = (offset as u32).min(total);
-        let end = ((offset + limit) as u32).min(total);
+        let end = match offset.checked_add(limit) {
+            // Saturate instead of wrapping so an absurd offset+limit simply
+            // returns everything from the window start.
+            Some(v) => (v as u32).min(total),
+            None => total,
+        };
         let mut result = Vec::new(env);
         for i in start..end {
             result.push_back(all.get(i).unwrap());

@@ -46,6 +46,66 @@ fn test_create_token() {
 }
 
 #[test]
+fn test_create_token_rejects_invalid_metadata() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let base = |name: String, symbol: String, decimals: u32| crate::factory::CreateTokenParams {
+        name,
+        symbol,
+        decimals,
+        max_supply: 10_000_000_000_000_000i128,
+        image_uri: String::from_str(&env, ""),
+        description: String::from_str(&env, ""),
+        curve_params: CurveParams {
+            initial_price: 100i128,
+            steepness: 1i128,
+            reserve_target: 5_000_000_000_000i128,
+        },
+    };
+
+    assert!(client
+        .try_create_token(&base(
+            String::from_str(&env, ""),
+            String::from_str(&env, "T"),
+            7
+        ))
+        .is_err());
+    assert!(client
+        .try_create_token(&base(
+            String::from_str(&env, "T"),
+            String::from_str(&env, ""),
+            7
+        ))
+        .is_err());
+    assert!(client
+        .try_create_token(&base(
+            String::from_str(&env, &"n".repeat(33)),
+            String::from_str(&env, "T"),
+            7
+        ))
+        .is_err());
+    assert!(client
+        .try_create_token(&base(
+            String::from_str(&env, "T"),
+            String::from_str(&env, &"s".repeat(33)),
+            7
+        ))
+        .is_err());
+    assert!(client
+        .try_create_token(&base(
+            String::from_str(&env, "T"),
+            String::from_str(&env, "T"),
+            256
+        ))
+        .is_err());
+
+    // Nothing was recorded.
+    assert_eq!(client.get_token_count(), 0);
+}
+
+#[test]
 fn test_get_tokens_paginated() {
     let env = Env::default();
     env.mock_all_auths();

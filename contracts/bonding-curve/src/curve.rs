@@ -37,12 +37,22 @@ impl BondingCurveContract {
 
     pub fn buy(env: Env, buyer: Address, amount_out: i128) -> i128 {
         buyer.require_auth();
+        if amount_out <= 0 {
+            panic!("bonding curve: buy amount must be positive");
+        }
         let params: CurveParams = env.storage().instance().get(&"curve_params").unwrap();
         let tokens_sold: i128 = env.storage().persistent().get(&"tokens_sold").unwrap();
         let reserve: i128 = env.storage().persistent().get(&"reserve").unwrap();
-        let cost = calculate_buy_cost(&params, tokens_sold, tokens_sold + amount_out);
-        let new_reserve = reserve + cost;
-        let new_tokens_sold = tokens_sold + amount_out;
+        let sell_to = tokens_sold
+            .checked_add(amount_out)
+            .unwrap_or_else(|| panic!("bonding curve: buy supply overflow"));
+        let cost = calculate_buy_cost(&params, tokens_sold, sell_to);
+        let new_reserve = reserve
+            .checked_add(cost)
+            .unwrap_or_else(|| panic!("bonding curve: reserve overflow"));
+        let new_tokens_sold = tokens_sold
+            .checked_add(amount_out)
+            .unwrap_or_else(|| panic!("bonding curve: supply overflow"));
         env.storage().persistent().set(&"reserve", &new_reserve);
         env.storage()
             .persistent()
@@ -57,12 +67,25 @@ impl BondingCurveContract {
 
     pub fn sell(env: Env, seller: Address, amount_in: i128) -> i128 {
         seller.require_auth();
+        if amount_in <= 0 {
+            panic!("bonding curve: sell amount must be positive");
+        }
         let params: CurveParams = env.storage().instance().get(&"curve_params").unwrap();
         let tokens_sold: i128 = env.storage().persistent().get(&"tokens_sold").unwrap();
         let reserve: i128 = env.storage().persistent().get(&"reserve").unwrap();
-        let payout = calculate_sell_payout(&params, tokens_sold, tokens_sold - amount_in);
-        let new_reserve = reserve - payout;
-        let new_tokens_sold = tokens_sold - amount_in;
+        if amount_in > tokens_sold {
+            panic!("bonding curve: sell amount exceeds tokens sold");
+        }
+        let sold_to = tokens_sold
+            .checked_sub(amount_in)
+            .unwrap_or_else(|| panic!("bonding curve: sell supply underflow"));
+        let payout = calculate_sell_payout(&params, tokens_sold, sold_to);
+        let new_reserve = reserve
+            .checked_sub(payout)
+            .unwrap_or_else(|| panic!("bonding curve: reserve underflow"));
+        let new_tokens_sold = tokens_sold
+            .checked_sub(amount_in)
+            .unwrap_or_else(|| panic!("bonding curve: supply underflow"));
         env.storage().persistent().set(&"reserve", &new_reserve);
         env.storage()
             .persistent()
@@ -93,7 +116,10 @@ impl BondingCurveContract {
         let params: CurveParams = env.storage().instance().get(&"curve_params").unwrap();
         let tokens_sold: i128 = env.storage().persistent().get(&"tokens_sold").unwrap();
         let price = calculate_price(&params, tokens_sold);
-        price * tokens_sold / 10_000_000
+        price
+            .checked_mul(tokens_sold)
+            .unwrap_or_else(|| panic!("bonding curve: market cap overflow"))
+            / 10_000_000
     }
 
     pub fn get_curve_info(env: Env) -> CurveInfo {
@@ -103,7 +129,10 @@ impl BondingCurveContract {
         let tokens_sold: i128 = env.storage().persistent().get(&"tokens_sold").unwrap();
         let admin: Address = env.storage().instance().get(&"admin").unwrap();
         let price = calculate_price(&params, tokens_sold);
-        let market_cap = price * tokens_sold / 10_000_000;
+        let market_cap = price
+            .checked_mul(tokens_sold)
+            .unwrap_or_else(|| panic!("bonding curve: market cap overflow"))
+            / 10_000_000;
         CurveInfo {
             token_id,
             params,

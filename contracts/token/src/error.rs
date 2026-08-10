@@ -14,6 +14,9 @@ pub enum TokenError {
     OverflowError = 8,
     BecomingInsufficientAllowanceError = 9,
     DurationError = 10,
+    InvalidMetadataError = 11,
+    ContractPausedError = 12,
+    HooksError = 13,
 }
 
 impl TokenError {
