@@ -1,7 +1,8 @@
 use soroban_sdk::testutils::{self, Events};
-use soroban_sdk::{symbol_short, vec, Address, Env, IntoVal, String, Symbol};
+use soroban_sdk::{symbol_short, Address, Bytes, BytesN, Env, IntoVal, String, Symbol};
 
 use crate::token::{TokenContract, TokenContractClient};
+use crate::upgrade::InterfaceVersion;
 
 fn generate_address(env: &Env) -> Address {
     <Address as testutils::Address>::generate(env)
@@ -168,11 +169,11 @@ fn test_transfer_emits_sep41_event() {
     // asserted before issuing any further reads.
     assert_eq!(
         env.events().all(),
-        vec![
+        soroban_sdk::vec![
             &env,
             (
                 id,
-                vec![
+                soroban_sdk::vec![
                     &env,
                     symbol_short!("transfer").into_val(&env),
                     user1.clone().into_val(&env),
@@ -196,11 +197,11 @@ fn test_mint_emits_sep41_event() {
     client.mint(&user, &1000i128);
     assert_eq!(
         env.events().all(),
-        vec![
+        soroban_sdk::vec![
             &env,
             (
                 id,
-                vec![
+                soroban_sdk::vec![
                     &env,
                     symbol_short!("mint").into_val(&env),
                     user.clone().into_val(&env),
@@ -222,11 +223,11 @@ fn test_burn_emits_sep41_event() {
     client.burn(&user, &300i128);
     assert_eq!(
         env.events().all(),
-        vec![
+        soroban_sdk::vec![
             &env,
             (
                 id,
-                vec![
+                soroban_sdk::vec![
                     &env,
                     symbol_short!("burn").into_val(&env),
                     user.clone().into_val(&env),
@@ -249,11 +250,11 @@ fn test_approve_emits_sep41_event() {
     client.approve(&user, &spender, &500i128, &100u64);
     assert_eq!(
         env.events().all(),
-        vec![
+        soroban_sdk::vec![
             &env,
             (
                 id,
-                vec![
+                soroban_sdk::vec![
                     &env,
                     symbol_short!("approve").into_val(&env),
                     user.clone().into_val(&env),
@@ -275,11 +276,11 @@ fn test_set_authorized_emits_event() {
     client.set_authorized(&user, &false);
     assert_eq!(
         env.events().all(),
-        vec![
+        soroban_sdk::vec![
             &env,
             (
                 id,
-                vec![
+                soroban_sdk::vec![
                     &env,
                     Symbol::new(&env, "set_authorized").into_val(&env),
                     admin.clone().into_val(&env),
@@ -290,4 +291,81 @@ fn test_set_authorized_emits_event() {
             ),
         ]
     );
+}
+
+#[test]
+fn test_version_reports_interface_and_implementation() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    let version = client.version();
+    assert_eq!(version.interface, 1);
+    assert!(version.implementation >= 1);
+}
+
+#[test]
+fn test_upgrade_requires_admin_auth() {
+    let env = Env::default();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_token(&env, &admin);
+    let wasm_hash = BytesN::from_array(&env, &[1u8; 32]);
+    // Without `mock_all_auths` the transaction is carried out by the deployer
+    // test account, which is not the token admin, so the admin `require_auth`
+    // fails. `try_` captures the failure instead of panicking.
+    let result = client.try_upgrade(&wasm_hash);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_upgrade_bumps_implementation_version() {
+    use soroban_sdk::xdr::{
+        Limited, Limits, ScEnvMetaEntry, ScEnvMetaEntryInterfaceVersion, WriteXdr,
+    };
+
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (id, client) = deploy_token(&env, &admin);
+    let before = client.version();
+
+    // Encode the Soroban contract metadata xdr that every valid contract wasm
+    // must carry (`contractenvmetav0` custom section).
+    let entry = ScEnvMetaEntry::ScEnvMetaKindInterfaceVersion(ScEnvMetaEntryInterfaceVersion {
+        protocol: 27,
+        pre_release: 0,
+    });
+    let mut meta: Vec<u8> = Vec::new();
+    entry
+        .write_xdr(&mut Limited::new(&mut meta, Limits::none()))
+        .unwrap();
+
+    let name = b"contractenvmetav0";
+    // Custom section layout: id byte, section size, then a name-length-prefixed
+    // name followed by the opaque meta payload.
+    let mut content: Vec<u8> = Vec::new();
+    content.push(name.len() as u8);
+    content.extend_from_slice(name);
+    content.extend_from_slice(&meta);
+    let mut wasm: Vec<u8> = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+    wasm.push(0x00); // custom section id
+    wasm.push((name.len() + meta.len() + 1) as u8); // section content length
+    wasm.extend_from_slice(&content);
+    let wasm_hash = env
+        .deployer()
+        .upload_contract_wasm(Bytes::from_slice(&env, &wasm));
+
+    client.upgrade(&wasm_hash);
+
+    // The upgraded executable is a minimal stub wasm, so we read the newly
+    // stored version directly from the contract's instance storage instead of
+    // invoking a method on the stub.
+    let stored: InterfaceVersion = env.as_contract(&id, || {
+        env.storage()
+            .instance()
+            .get(&Symbol::new(&env, "token_version"))
+            .unwrap()
+    });
+    assert_eq!(stored.interface, before.interface);
+    assert_eq!(stored.implementation, before.implementation + 1);
 }
