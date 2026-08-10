@@ -2,31 +2,51 @@ use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String};
 
 use crate::math::{calculate_buy_cost, calculate_price, calculate_sell_payout};
 
+/// Parameters of an exponential bonding curve: price grows from
+/// `initial_price` with steepness `k` as the number of tokens sold (`S`)
+/// increases, per `P(S) = P0 * e^(k*S)`.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct CurveParams {
+    /// Price of the first token unit, in 1/SCALE precision.
     pub initial_price: i128,
+    /// Exponential growth steepness `k`, in 1/SCALE precision.
     pub steepness: i128,
+    /// Target reserve the curve is expected to accumulate. Informational.
     pub reserve_target: i128,
 }
 
+/// Current on-chain state of a deployed bonding curve. Returned by
+/// [`BondingCurveContract::get_curve_info`].
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct CurveInfo {
+    /// Address of the token contract this curve prices.
     pub token_id: Address,
+    /// The curve's configuration parameters.
     pub params: CurveParams,
+    /// Reserve balance accumulated from buys and depleted by sells.
     pub reserve: i128,
+    /// Total number of tokens issued through the curve so far.
     pub tokens_sold: i128,
+    /// Current price per token unit, derived from `tokens_sold`.
     pub price: i128,
+    /// Current market cap (price * tokens sold), in whole token units.
     pub market_cap: i128,
+    /// Admin allowed to manage the curve.
     pub admin: Address,
 }
 
+/// A constant-product-free exponential bonding curve. Buyers pay into the
+/// reserve to receive newly issued tokens; sellers return tokens and withdraw
+/// from the reserve. The price increases as supply grows.
 #[contract]
 pub struct BondingCurveContract;
 
 #[contractimpl]
 impl BondingCurveContract {
+    /// Configures the curve for a token. Must be called once, by the
+    /// deploying account, before any buys or sells.
     pub fn initialize(env: Env, token_id: Address, curve_params: CurveParams, admin: Address) {
         env.storage().instance().set(&"token_id", &token_id);
         env.storage().instance().set(&"curve_params", &curve_params);
@@ -35,6 +55,12 @@ impl BondingCurveContract {
         env.storage().persistent().set(&"tokens_sold", &0i128);
     }
 
+    /// Buys `amount_out` tokens for the `buyer`, who must authorize the call.
+    ///
+    /// Computes the total cost over the price range traversed
+    /// (`S -> S + amount_out`), adds it to the reserve, records the newly
+    /// issued tokens in `tokens_sold`, and returns the cost paid. Panics on a
+    /// non-positive amount or a supply/reserve overflow.
     pub fn buy(env: Env, buyer: Address, amount_out: i128) -> i128 {
         buyer.require_auth();
         if amount_out <= 0 {
@@ -65,6 +91,15 @@ impl BondingCurveContract {
         cost
     }
 
+    /// Sells `amount_in` tokens on behalf of the `seller`, who must authorize
+    /// the call. Token ownership is expected to be handled by the calling
+    /// token before the curve is invoked.
+    ///
+    /// Computes the payout over the price range traversed
+    /// (`S -> S - amount_in`), deducts it from the reserve, records the
+    /// returned tokens in `tokens_sold`, and returns the payout received.
+    /// Panics on a non-positive amount, a sell exceeding `tokens_sold`, or a
+    /// reserve underflow.
     pub fn sell(env: Env, seller: Address, amount_in: i128) -> i128 {
         seller.require_auth();
         if amount_in <= 0 {
@@ -98,20 +133,26 @@ impl BondingCurveContract {
         payout
     }
 
+    /// Returns the current price per token unit. Publicly queryable.
     pub fn get_price(env: Env) -> i128 {
         let params: CurveParams = env.storage().instance().get(&"curve_params").unwrap();
         let tokens_sold: i128 = env.storage().persistent().get(&"tokens_sold").unwrap();
         calculate_price(&params, tokens_sold)
     }
 
+    /// Returns the current reserve balance. Publicly queryable.
     pub fn get_reserve(env: Env) -> i128 {
         env.storage().persistent().get(&"reserve").unwrap()
     }
 
+    /// Returns how many tokens have been sold (issued) so far. Publicly
+    /// queryable.
     pub fn get_tokens_sold(env: Env) -> i128 {
         env.storage().persistent().get(&"tokens_sold").unwrap()
     }
 
+    /// Returns the current market cap: `price * tokens_sold`, in whole token
+    /// units. Publicly queryable.
     pub fn get_market_cap(env: Env) -> i128 {
         let params: CurveParams = env.storage().instance().get(&"curve_params").unwrap();
         let tokens_sold: i128 = env.storage().persistent().get(&"tokens_sold").unwrap();
@@ -122,6 +163,8 @@ impl BondingCurveContract {
             / 10_000_000
     }
 
+    /// Returns a snapshot of the curve's full state: token, params, reserve,
+    /// tokens sold, price, market cap, and admin. Publicly queryable.
     pub fn get_curve_info(env: Env) -> CurveInfo {
         let token_id: Address = env.storage().instance().get(&"token_id").unwrap();
         let params: CurveParams = env.storage().instance().get(&"curve_params").unwrap();

@@ -13,7 +13,11 @@ const VERSION_SYMBOL: &str = "token_version";
 #[contracttype]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct InterfaceVersion {
+    /// Number of the public contract interface. Incremented whenever a
+    /// function signature changes in a way that breaks compatibility.
     pub interface: u32,
+    /// Number of a specific deployment's implementation, incremented on every
+    /// upgrade.
     pub implementation: u32,
 }
 

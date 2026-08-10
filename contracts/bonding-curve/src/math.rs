@@ -10,6 +10,8 @@ fn need(v: Option<i128>, what: &str) -> i128 {
     v.unwrap_or_else(|| panic!("bonding curve {what} overflow"))
 }
 
+/// Current price per token unit at `tokens_sold`: `P0 * e^(k*S)`, in
+/// SCALE-scaled fixed point. Panics on overflow.
 pub fn calculate_price(params: &CurveParams, tokens_sold: i128) -> i128 {
     // P(S) = P₀ × e^(k × S)
     let exponent = need(params.steepness.checked_mul(tokens_sold), "price exponent") / SCALE;
@@ -17,6 +19,9 @@ pub fn calculate_price(params: &CurveParams, tokens_sold: i128) -> i128 {
     need(params.initial_price.checked_mul(exp_val), "price") / SCALE
 }
 
+/// Total cost to advance supply from `s1` to `s2`:
+/// `(P0/k) * (e^(k*s2) - e^(k*s1))`. Returns zero when `s1 == s2`. Panics on
+/// overflow.
 pub fn calculate_buy_cost(params: &CurveParams, s1: i128, s2: i128) -> i128 {
     // Cost(S₁ → S₂) = (P₀ / k) × (e^(k × S₂) - e^(k × S₁))
     if s1 == s2 {
@@ -32,6 +37,8 @@ pub fn calculate_buy_cost(params: &CurveParams, s1: i128, s2: i128) -> i128 {
     need(ratio.checked_mul(diff), "cost") / SCALE
 }
 
+/// Payout for selling supply back from `s1` to `s2`; the reverse of a buy
+/// over the same range. Panics on overflow.
 pub fn calculate_sell_payout(params: &CurveParams, s1: i128, s2: i128) -> i128 {
     calculate_buy_cost(params, s2, s1)
 }
