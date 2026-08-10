@@ -485,6 +485,84 @@ fn test_registry_records_verified_deployed_addresses() {
 }
 
 #[test]
+fn test_remove_token() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let first = registered_address(&env);
+    let second = registered_address(&env);
+    let third = registered_address(&env);
+    client.create_token(&make_params(
+        &env,
+        &first,
+        &registered_address(&env),
+        "Alpha",
+        "ALPHA",
+    ));
+    client.create_token(&make_params(
+        &env,
+        &second,
+        &registered_address(&env),
+        "Beta",
+        "BETA",
+    ));
+    client.create_token(&make_params(
+        &env,
+        &third,
+        &registered_address(&env),
+        "Gamma",
+        "GAMMA",
+    ));
+    assert_eq!(client.get_token_count(), 3);
+
+    client.remove_token(&second);
+    assert_eq!(client.get_token_count(), 2);
+    assert!(!client.has_token(&second));
+    assert_eq!(
+        client.try_get_token(&second).unwrap_err().unwrap(),
+        ContractError::TokenNotFound
+    );
+
+    // The remaining records keep their creation order.
+    let remaining = client.get_all_tokens();
+    assert_eq!(remaining.len(), 2);
+    assert_eq!(
+        remaining.get(0).unwrap().name,
+        String::from_str(&env, "Alpha")
+    );
+    assert_eq!(
+        remaining.get(1).unwrap().name,
+        String::from_str(&env, "Gamma")
+    );
+}
+
+#[test]
+fn test_remove_token_unknown() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    assert_eq!(
+        client
+            .try_remove_token(&registered_address(&env))
+            .unwrap_err()
+            .unwrap(),
+        ContractError::TokenNotFound
+    );
+}
+
+#[test]
+fn test_remove_token_requires_admin_auth() {
+    let env = Env::default();
+    // No mock_all_auths: the caller is the deployer test account, not the
+    // factory admin, so the admin `require_auth` fails.
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    assert!(client.try_remove_token(&registered_address(&env)).is_err());
+}
+
+#[test]
 fn test_has_token() {
     let env = Env::default();
     env.mock_all_auths();

@@ -186,6 +186,17 @@ impl FactoryContract {
         Registry::has(&env, &token_id)
     }
 
+    /// Removes a token from the registry. Admin only.
+    ///
+    /// Returns `TokenNotFound` when no token with that address is registered.
+    /// Removal shrinks the registry while preserving the creation order of the
+    /// remaining records, so the stable pagination ordering is maintained.
+    pub fn remove_token(env: Env, token_id: Address) -> Result<(), ContractError> {
+        let admin = Self::read_admin(&env);
+        admin.require_auth();
+        Registry::remove(&env, &token_id)
+    }
+
     /// Returns metadata for every token registered so far, in creation order.
     /// Publicly queryable.
     pub fn get_all_tokens(env: Env) -> Vec<TokenInfo> {
@@ -337,6 +348,28 @@ impl Registry {
     /// Returns the number of registered tokens.
     pub fn count(env: &Env) -> u64 {
         env.storage().persistent().get(&"count").unwrap_or(0)
+    }
+
+    /// Removes the record for `token_id`, returning `TokenNotFound` if it is
+    /// not registered. The remaining records keep their relative creation
+    /// order, and the count is decremented.
+    pub fn remove(env: &Env, token_id: &Address) -> Result<(), ContractError> {
+        let mut tokens: Vec<TokenInfo> = Self::all(env);
+        let mut index = None;
+        for (i, token) in tokens.iter().enumerate() {
+            if &token.token_id == token_id {
+                index = Some(i as u32);
+                break;
+            }
+        }
+        let index = index.ok_or(ContractError::TokenNotFound)?;
+        tokens.remove(index);
+        env.storage().persistent().set(&"tokens", &tokens);
+        let count: u64 = env.storage().persistent().get(&"count").unwrap_or(0);
+        env.storage()
+            .persistent()
+            .set(&"count", &count.saturating_sub(1));
+        Ok(())
     }
 
     /// Returns a window of registered tokens starting at `offset` and taking
