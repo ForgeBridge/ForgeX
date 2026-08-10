@@ -63,10 +63,31 @@ fn test_buy_rejects_non_positive_amounts() {
     env.mock_all_auths();
     let (_id, client) = deploy_curve(&env);
     let buyer = generate_address(&env);
-    assert!(client.try_buy(&buyer, &0i128).is_err());
-    assert!(client.try_buy(&buyer, &(-10i128)).is_err());
+    let max_cost = i128::MAX;
+    assert!(client.try_buy(&buyer, &0i128, &max_cost).is_err());
+    assert!(client.try_buy(&buyer, &(-10i128), &max_cost).is_err());
     assert_eq!(client.get_tokens_sold(), 0);
     assert_eq!(client.get_reserve(), 0);
+}
+
+#[test]
+fn test_buy_slippage_protection() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_id, client) = deploy_curve(&env);
+    let buyer = generate_address(&env);
+
+    // A limit below any possible cost (negative) is refused and leaves state
+    // untouched.
+    let before_sold = client.get_tokens_sold();
+    let before_reserve = client.get_reserve();
+    assert!(client.try_buy(&buyer, &1000i128, &(-1i128)).is_err());
+    assert_eq!(client.get_tokens_sold(), before_sold);
+    assert_eq!(client.get_reserve(), before_reserve);
+
+    // The same purchase succeeds with a permissive limit.
+    client.buy(&buyer, &1000i128, &i128::MAX);
+    assert_eq!(client.get_tokens_sold(), 1000);
 }
 
 #[test]
@@ -75,13 +96,30 @@ fn test_sell_rejects_invalid_amounts() {
     env.mock_all_auths();
     let (_id, client) = deploy_curve(&env);
     let seller = generate_address(&env);
+    let min_payout = 0i128;
     // Selling nothing or more than the total sold is rejected.
-    assert!(client.try_sell(&seller, &0i128).is_err());
-    assert!(client.try_sell(&seller, &(-10i128)).is_err());
+    assert!(client.try_sell(&seller, &0i128, &min_payout).is_err());
+    assert!(client.try_sell(&seller, &(-10i128), &min_payout).is_err());
     // Nothing has been sold yet, so any positive sell amount is also invalid.
-    assert!(client.try_sell(&seller, &100i128).is_err());
+    assert!(client.try_sell(&seller, &100i128, &min_payout).is_err());
     assert_eq!(client.get_tokens_sold(), 0);
     assert_eq!(client.get_reserve(), 0);
+}
+
+#[test]
+fn test_sell_slippage_protection() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_id, client) = deploy_curve(&env);
+    let seller = generate_address(&env);
+    client.buy(&seller, &1000i128, &i128::MAX);
+
+    // A minimum payout that can never be achieved is refused and leaves state
+    // untouched; an achievable minimum is accepted.
+    assert!(client.try_sell(&seller, &500i128, &i128::MAX).is_err());
+    assert_eq!(client.get_tokens_sold(), 1000);
+    client.sell(&seller, &500i128, &0i128);
+    assert_eq!(client.get_tokens_sold(), 500);
 }
 
 #[test]
@@ -90,7 +128,7 @@ fn test_buy_keeps_state_consistent() {
     env.mock_all_auths();
     let (_id, client) = deploy_curve(&env);
     let buyer = generate_address(&env);
-    let cost = client.buy(&buyer, &1000i128);
+    let cost = client.buy(&buyer, &1000i128, &i128::MAX);
     // After a buy the recorded supply always grows by the bought amount and
     // the reserve always grows by the charged cost, whatever the cost is.
     assert_eq!(client.get_tokens_sold(), 1000);

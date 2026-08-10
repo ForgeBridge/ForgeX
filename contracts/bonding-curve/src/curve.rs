@@ -59,9 +59,11 @@ impl BondingCurveContract {
     ///
     /// Computes the total cost over the price range traversed
     /// (`S -> S + amount_out`), adds it to the reserve, records the newly
-    /// issued tokens in `tokens_sold`, and returns the cost paid. Panics on a
-    /// non-positive amount or a supply/reserve overflow.
-    pub fn buy(env: Env, buyer: Address, amount_out: i128) -> i128 {
+    /// issued tokens in `tokens_sold`, and returns the cost paid. The caller
+    /// supplies a `max_cost` slippage limit: if the executed cost exceeds it,
+    /// the buy is refused and nothing changes. Panics on a non-positive
+    /// amount, a supply/reserve overflow, or slippage above `max_cost`.
+    pub fn buy(env: Env, buyer: Address, amount_out: i128, max_cost: i128) -> i128 {
         buyer.require_auth();
         if amount_out <= 0 {
             panic!("bonding curve: buy amount must be positive");
@@ -73,6 +75,10 @@ impl BondingCurveContract {
             .checked_add(amount_out)
             .unwrap_or_else(|| panic!("bonding curve: buy supply overflow"));
         let cost = calculate_buy_cost(&params, tokens_sold, sell_to);
+        // Slippage protection: refuse if the executed cost exceeds the limit.
+        if cost > max_cost {
+            panic!("bonding curve: buy cost exceeds slippage limit");
+        }
         let new_reserve = reserve
             .checked_add(cost)
             .unwrap_or_else(|| panic!("bonding curve: reserve overflow"));
@@ -97,10 +103,12 @@ impl BondingCurveContract {
     ///
     /// Computes the payout over the price range traversed
     /// (`S -> S - amount_in`), deducts it from the reserve, records the
-    /// returned tokens in `tokens_sold`, and returns the payout received.
-    /// Panics on a non-positive amount, a sell exceeding `tokens_sold`, or a
-    /// reserve underflow.
-    pub fn sell(env: Env, seller: Address, amount_in: i128) -> i128 {
+    /// returned tokens in `tokens_sold`, and returns the payout received. The
+    /// seller supplies a `min_payout` slippage limit: if the executed payout
+    /// is below it, the sell is refused and nothing changes. Panics on a
+    /// non-positive amount, a sell exceeding `tokens_sold`, a reserve
+    /// underflow, or slippage below `min_payout`.
+    pub fn sell(env: Env, seller: Address, amount_in: i128, min_payout: i128) -> i128 {
         seller.require_auth();
         if amount_in <= 0 {
             panic!("bonding curve: sell amount must be positive");
@@ -115,6 +123,11 @@ impl BondingCurveContract {
             .checked_sub(amount_in)
             .unwrap_or_else(|| panic!("bonding curve: sell supply underflow"));
         let payout = calculate_sell_payout(&params, tokens_sold, sold_to);
+        // Slippage protection: refuse if the executed payout is below the
+        // limit.
+        if payout < min_payout {
+            panic!("bonding curve: sell payout below slippage limit");
+        }
         let new_reserve = reserve
             .checked_sub(payout)
             .unwrap_or_else(|| panic!("bonding curve: reserve underflow"));
