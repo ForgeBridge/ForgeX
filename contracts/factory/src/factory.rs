@@ -1,4 +1,4 @@
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Symbol, Vec};
 
 /// Parameters for the bonding curve attached to a new token. The curve price
 /// is derived from `initial_price` scaled by `steepness` as minted supply
@@ -114,10 +114,16 @@ impl FactoryContract {
             description: params.description,
             created_at: timestamp,
         };
-        Registry::push(&env, info);
+        Registry::push(&env, info.clone());
+        // Full-detail event: the data is the complete registry record, so
+        // indexers can reconstruct the token without a follow-up read.
         env.events().publish(
-            (String::from_str(&env, "TokenCreated"), token_id.clone()),
-            (token_id.clone(), curve_id.clone()),
+            (
+                Symbol::new(&env, "TokenCreated"),
+                info.creator.clone(),
+                token_id.clone(),
+            ),
+            info,
         );
         (token_id, curve_id)
     }
