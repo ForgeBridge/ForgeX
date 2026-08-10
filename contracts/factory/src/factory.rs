@@ -72,9 +72,41 @@ pub struct FactoryContract;
 #[contractimpl]
 impl FactoryContract {
     /// Configures the factory's admin. Must be called once, by the deploying
-    /// account, before any tokens can be created.
-    pub fn initialize(env: Env, admin: Address) {
+    /// account, before any tokens can be created. Returns
+    /// `AlreadyInitialized` if the factory has already been configured, so the
+    /// admin role can never be stolen through a second call.
+    pub fn initialize(env: Env, admin: Address) -> Result<(), ContractError> {
+        if env.storage().instance().has(&"admin") {
+            return Err(ContractError::AlreadyInitialized);
+        }
         env.storage().instance().set(&"admin", &admin);
+        Ok(())
+    }
+
+    /// Returns the current factory admin. Publicly queryable.
+    pub fn get_admin(env: Env) -> Address {
+        Self::read_admin(&env)
+    }
+
+    /// Transfers factory ownership to `new_admin`. Admin only.
+    ///
+    /// After a successful call only `new_admin` can create or remove tokens.
+    /// The new admin must already exist in the ledger so the role can never be
+    /// handed to a dead address; otherwise `Err(InvalidAdminAddress)` is
+    /// returned and ownership is unchanged. An `AdminChanged` event records
+    /// the handover.
+    pub fn set_admin(env: Env, new_admin: Address) -> Result<(), ContractError> {
+        let admin = Self::read_admin(&env);
+        admin.require_auth();
+        if !new_admin.exists() {
+            return Err(ContractError::InvalidAdminAddress);
+        }
+        env.storage().instance().set(&"admin", &new_admin.clone());
+        env.events().publish(
+            (Symbol::new(&env, "AdminChanged"), admin, new_admin.clone()),
+            (),
+        );
+        Ok(())
     }
 
     /// Registers a new token in the factory's public registry. Admin only.
@@ -91,7 +123,7 @@ impl FactoryContract {
         env: Env,
         params: CreateTokenParams,
     ) -> Result<(Address, Address), ContractError> {
-        let admin: Address = env.storage().instance().get(&"admin").unwrap();
+        let admin = Self::read_admin(&env);
         admin.require_auth();
         // Mirror the token contract's SEP-41 metadata validation so the
         // registry never holds records that could not be a real token.
@@ -179,6 +211,14 @@ impl FactoryContract {
     /// tail. Publicly queryable.
     pub fn get_tokens_paginated(env: Env, offset: u64, limit: u64) -> Vec<TokenInfo> {
         Registry::paginated(&env, offset, limit)
+    }
+}
+
+impl FactoryContract {
+    /// Reads the stored admin. Panics if the factory was never initialized,
+    /// which cannot happen because every operation requires an admin.
+    fn read_admin(env: &Env) -> Address {
+        env.storage().instance().get(&"admin").unwrap()
     }
 }
 

@@ -5,7 +5,7 @@ use soroban_sdk::contracterror;
 /// Factory entry points return `Result<T, ContractError>` instead of panicking
 /// so that callers can recover from invalid input and invalid state instead of
 /// having the whole transaction revert. Error codes are stable contract-level
-/// values (1-8) that clients can match on.
+/// values (1-9) that clients can match on.
 #[contracterror]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u32)]
@@ -30,4 +30,6 @@ pub enum ContractError {
     /// The supplied bonding curve contract address does not exist in the
     /// ledger.
     InvalidCurveAddress = 8,
+    /// The admin address supplied to `set_admin` does not exist in the ledger.
+    InvalidAdminAddress = 9,
 }
