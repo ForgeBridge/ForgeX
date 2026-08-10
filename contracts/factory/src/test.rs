@@ -249,6 +249,49 @@ fn test_get_tokens_paginated() {
 }
 
 #[test]
+fn test_token_count_tracks_registrations() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    assert_eq!(client.get_token_count(), 0);
+
+    client.create_token(&make_params(
+        &env,
+        &registered_address(&env),
+        &registered_address(&env),
+        "Alpha",
+        "ALPHA",
+    ));
+    client.create_token(&make_params(
+        &env,
+        &registered_address(&env),
+        &registered_address(&env),
+        "Beta",
+        "BETA",
+    ));
+    client.create_token(&make_params(
+        &env,
+        &registered_address(&env),
+        &registered_address(&env),
+        "Gamma",
+        "GAMMA",
+    ));
+    assert_eq!(client.get_token_count(), 3);
+
+    // A rejected duplicate does not move the count.
+    let dup = make_params(
+        &env,
+        &registered_address(&env),
+        &registered_address(&env),
+        "Alpha",
+        "OTHER",
+    );
+    assert!(client.try_create_token(&dup).is_err());
+    assert_eq!(client.get_token_count(), 3);
+}
+
+#[test]
 fn test_create_token_returns_token_not_found_for_missing_address() {
     let env = Env::default();
     env.mock_all_auths();
