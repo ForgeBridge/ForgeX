@@ -238,7 +238,6 @@ fn test_set_authorized_revokes_and_restores() {
 }
 
 #[test]
-#[should_panic]
 fn test_revoked_user_cannot_send_transfers() {
     let env = Env::default();
     env.mock_all_auths();
@@ -248,11 +247,13 @@ fn test_revoked_user_cannot_send_transfers() {
     let (_id, client) = deploy_token(&env, &admin);
     client.mint(&user, &1000i128);
     client.set_authorized(&user, &false);
-    client.transfer(&user, &recipient, &500i128);
+    // The transfer returns Err instead of panicking, and no tokens move.
+    assert!(client.try_transfer(&user, &recipient, &500i128).is_err());
+    assert_eq!(client.balance_of(&user), 1000);
+    assert_eq!(client.balance_of(&recipient), 0);
 }
 
 #[test]
-#[should_panic]
 fn test_revoked_user_cannot_receive_transfers() {
     let env = Env::default();
     env.mock_all_auths();
@@ -262,27 +263,33 @@ fn test_revoked_user_cannot_receive_transfers() {
     let (_id, client) = deploy_token(&env, &admin);
     client.mint(&user, &1000i128);
     client.set_authorized(&recipient, &false);
-    client.transfer(&user, &recipient, &500i128);
+    assert!(client.try_transfer(&user, &recipient, &500i128).is_err());
+    assert_eq!(client.balance_of(&user), 1000);
+    assert_eq!(client.balance_of(&recipient), 0);
 }
 
 #[test]
-#[should_panic]
 fn test_admin_cannot_self_revoke() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = generate_address(&env);
     let (_id, client) = deploy_token(&env, &admin);
-    client.set_authorized(&admin, &false);
+    // The admin revoking themselves would drain the owner role; it is refused
+    // with Err instead of panicking.
+    assert!(client.try_set_authorized(&admin, &false).is_err());
+    assert!(client.authorized(&admin));
 }
 
 #[test]
-#[should_panic]
 fn test_non_admin_cannot_revoke() {
     let env = Env::default();
     let admin = generate_address(&env);
     let attacker = generate_address(&env);
     let (_id, client) = deploy_token(&env, &admin);
-    client.set_authorized(&attacker, &false);
+    // No auth mocked: only the stored admin may revoke, so the admin
+    // `require_auth` fails and the call is refused with Err.
+    assert!(client.try_set_authorized(&attacker, &false).is_err());
+    assert!(client.authorized(&attacker));
 }
 
 #[test]
