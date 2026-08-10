@@ -58,6 +58,9 @@ impl FactoryContract {
         if params.decimals > 255 {
             panic!("factory: token decimals must be 0-255");
         }
+        if params.max_supply < 0 {
+            panic!("factory: token max supply cannot be negative");
+        }
         let creator = admin.clone();
         let timestamp = env.ledger().timestamp();
         let token_id = env.current_contract_address();

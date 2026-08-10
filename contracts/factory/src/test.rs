@@ -106,6 +106,29 @@ fn test_create_token_rejects_invalid_metadata() {
 }
 
 #[test]
+fn test_create_token_rejects_negative_max_supply() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let params = crate::factory::CreateTokenParams {
+        name: String::from_str(&env, "T"),
+        symbol: String::from_str(&env, "T"),
+        decimals: 7u32,
+        max_supply: -1i128,
+        image_uri: String::from_str(&env, ""),
+        description: String::from_str(&env, ""),
+        curve_params: CurveParams {
+            initial_price: 100i128,
+            steepness: 1i128,
+            reserve_target: 5_000_000_000_000i128,
+        },
+    };
+    assert!(client.try_create_token(&params).is_err());
+    assert_eq!(client.get_token_count(), 0);
+}
+
+#[test]
 fn test_get_tokens_paginated() {
     let env = Env::default();
     env.mock_all_auths();

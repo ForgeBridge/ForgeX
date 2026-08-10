@@ -20,7 +20,8 @@ impl TokenMetadata {
     ///   limit the standard format stores names under).
     /// - `symbol` must be non-empty and at most 32 bytes, for the same reason.
     /// - `decimals` must be between 0 and 255.
-    pub fn validate(env: &Env, name: &String, symbol: &String, decimals: u32) {
+    /// - `max_supply` must be non-negative (a cap cannot be negative).
+    pub fn validate(env: &Env, name: &String, symbol: &String, decimals: u32, max_supply: i128) {
         if name.is_empty() || name.len() > 32 {
             TokenError::InvalidMetadataError.panic(env);
         }
@@ -29,6 +30,9 @@ impl TokenMetadata {
         }
         if decimals > 255 {
             TokenError::DecimalsError.panic(env);
+        }
+        if max_supply < 0 {
+            TokenError::MaxSupplyError.panic(env);
         }
     }
 
@@ -40,7 +44,7 @@ impl TokenMetadata {
         decimals: u32,
         max_supply: i128,
     ) {
-        Self::validate(env, &name, &symbol, decimals);
+        Self::validate(env, &name, &symbol, decimals, max_supply);
         let metadata = TokenMetadata {
             admin,
             name,
