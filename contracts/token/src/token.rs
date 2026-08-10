@@ -9,7 +9,11 @@ pub struct TokenContract;
 
 #[contractimpl]
 impl TokenContract {
-    pub fn initialize(
+    /// Constructs the token at deployment time. Runs exactly once, when the
+    /// contract is deployed, which prevents re-initialization attacks: there
+    /// is no public post-deploy `initialize` entry point that an attacker
+    /// could use to steal admin or overwrite metadata.
+    pub fn __constructor(
         env: Env,
         admin: Address,
         name: String,
