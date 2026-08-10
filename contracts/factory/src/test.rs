@@ -220,7 +220,103 @@ fn test_create_token_rejects_negative_max_supply() {
     let curve = registered_address(&env);
     let mut params = make_params(&env, &token, &curve, "T", "T");
     params.max_supply = -1i128;
-    assert!(client.try_create_token(&params).is_err());
+    assert_eq!(
+        client.try_create_token(&params).unwrap_err().unwrap(),
+        ContractError::InvalidMetadata
+    );
+    assert_eq!(client.get_token_count(), 0);
+}
+
+#[test]
+fn test_create_token_rejects_oversized_image_uri_and_description() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let token = registered_address(&env);
+    let curve = registered_address(&env);
+
+    let mut long_image = make_params(&env, &token, &curve, "T", "T");
+    long_image.image_uri = String::from_str(&env, &"x".repeat(256));
+    let result = client.try_create_token(&long_image);
+    assert_eq!(result.unwrap_err().unwrap(), ContractError::InvalidMetadata);
+
+    let mut long_description = make_params(&env, &token, &curve, "T", "T");
+    long_description.description = String::from_str(&env, &"x".repeat(1025));
+    let result = client.try_create_token(&long_description);
+    assert_eq!(result.unwrap_err().unwrap(), ContractError::InvalidMetadata);
+
+    // The 255-byte and 1024-byte maxima are still accepted.
+    let mut max_image = make_params(
+        &env,
+        &registered_address(&env),
+        &registered_address(&env),
+        "MaxImage",
+        "T1",
+    );
+    max_image.image_uri = String::from_str(&env, &"x".repeat(255));
+    let mut max_description = make_params(
+        &env,
+        &registered_address(&env),
+        &registered_address(&env),
+        "MaxDescription",
+        "T2",
+    );
+    max_description.description = String::from_str(&env, &"x".repeat(1024));
+    assert!(client.try_create_token(&max_image).is_ok());
+    assert!(client.try_create_token(&max_description).is_ok());
+    assert_eq!(client.get_token_count(), 2);
+}
+
+#[test]
+fn test_create_token_rejects_invalid_curve_params() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let token = registered_address(&env);
+    let curve = registered_address(&env);
+
+    let base = || make_params(&env, &token, &curve, "T", "T");
+
+    let mut zero_price = base();
+    zero_price.curve_params.initial_price = 0;
+    assert_eq!(
+        client.try_create_token(&zero_price).unwrap_err().unwrap(),
+        ContractError::InvalidCurveParams
+    );
+
+    let mut negative_price = base();
+    negative_price.curve_params.initial_price = -1;
+    assert_eq!(
+        client
+            .try_create_token(&negative_price)
+            .unwrap_err()
+            .unwrap(),
+        ContractError::InvalidCurveParams
+    );
+
+    let mut zero_steepness = base();
+    zero_steepness.curve_params.steepness = 0;
+    assert_eq!(
+        client
+            .try_create_token(&zero_steepness)
+            .unwrap_err()
+            .unwrap(),
+        ContractError::InvalidCurveParams
+    );
+
+    let mut negative_reserve = base();
+    negative_reserve.curve_params.reserve_target = -1;
+    assert_eq!(
+        client
+            .try_create_token(&negative_reserve)
+            .unwrap_err()
+            .unwrap(),
+        ContractError::InvalidCurveParams
+    );
+
+    // Nothing was recorded.
     assert_eq!(client.get_token_count(), 0);
 }
 
