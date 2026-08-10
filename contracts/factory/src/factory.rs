@@ -126,11 +126,13 @@ impl FactoryContract {
     /// The token metadata is validated against the same constraints the token
     /// contract enforces (1-32 byte name and symbol, decimals 0-255, a
     /// non-negative max supply) so the registry can never hold a record that
-    /// could not exist as a real token. Registers the already-deployed token
-    /// and bonding curve contract addresses supplied in `params`. A duplicate
-    /// of an existing token (same address, name, or symbol) is refused with
-    /// `TokenExists` and changes nothing. Emits a `TokenCreated` event
-    /// carrying the full registry record, keyed by creator and token address.
+    /// could not exist as a real token. The deployed token and bonding curve
+    /// contract addresses supplied in `params` are verified to exist in the
+    /// ledger before they are recorded, so the registry can never reference a
+    /// dead address. A duplicate of an existing token (same address, name, or
+    /// symbol) is refused with `TokenExists` and changes nothing. Emits a
+    /// `TokenCreated` event carrying the full registry record, keyed by
+    /// creator and token address.
     pub fn create_token(
         env: Env,
         params: CreateTokenParams,
@@ -138,6 +140,12 @@ impl FactoryContract {
         let admin = Self::read_admin(&env);
         admin.require_auth();
         Self::validate_params(&params)?;
+        if !params.token_id.exists() {
+            return Err(ContractError::InvalidTokenAddress);
+        }
+        if !params.curve_id.exists() {
+            return Err(ContractError::InvalidCurveAddress);
+        }
         if Registry::has(&env, &params.token_id)
             || Registry::has_name(&env, &params.name)
             || Registry::has_symbol(&env, &params.symbol)

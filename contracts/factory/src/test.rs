@@ -345,6 +345,73 @@ fn test_get_tokens_paginated() {
 }
 
 #[test]
+fn test_create_token_rejects_unverified_token_address() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+
+    // A random generated address is not a deployed contract in the ledger.
+    let missing_token = make_params(
+        &env,
+        &generate_address(&env),
+        &registered_address(&env),
+        "Alpha",
+        "ALPHA",
+    );
+    let result = client.try_create_token(&missing_token);
+    assert_eq!(
+        result.unwrap_err().unwrap(),
+        ContractError::InvalidTokenAddress
+    );
+    assert_eq!(client.get_token_count(), 0);
+}
+
+#[test]
+fn test_create_token_rejects_unverified_curve_address() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+
+    // The token address exists, but the curve address does not.
+    let missing_curve = make_params(
+        &env,
+        &registered_address(&env),
+        &generate_address(&env),
+        "Alpha",
+        "ALPHA",
+    );
+    let result = client.try_create_token(&missing_curve);
+    assert_eq!(
+        result.unwrap_err().unwrap(),
+        ContractError::InvalidCurveAddress
+    );
+    assert_eq!(client.get_token_count(), 0);
+}
+
+#[test]
+fn test_registry_records_verified_deployed_addresses() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+
+    // Register a second factory contract to serve as a verifiable token
+    // (matches the `registered_address` stand-in used across the tests).
+    let token = registered_address(&env);
+    let curve = registered_address(&env);
+    let (recorded_token, recorded_curve) =
+        client.create_token(&make_params(&env, &token, &curve, "Alpha", "ALPHA"));
+
+    // The addresses recorded in the registry are exactly the verified,
+    // deployed addresses supplied at creation.
+    let stored = client.get_token(&recorded_token);
+    assert_eq!(stored.token_id, recorded_token);
+    assert_eq!(stored.curve_id, recorded_curve);
+}
+
+#[test]
 fn test_get_token_by_name() {
     let env = Env::default();
     env.mock_all_auths();
