@@ -294,6 +294,98 @@ fn test_get_token_by_symbol() {
 }
 
 #[test]
+fn test_get_admin_returns_initialized_admin() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    assert_eq!(client.get_admin(), admin);
+}
+
+#[test]
+fn test_initialize_rejects_reinitialization() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let other = generate_address(&env);
+    assert_eq!(
+        client.try_initialize(&other).unwrap_err().unwrap(),
+        ContractError::AlreadyInitialized
+    );
+    // The original admin is untouched.
+    assert_eq!(client.get_admin(), admin);
+}
+
+#[test]
+fn test_set_admin_transfers_ownership() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (id, client) = deploy_factory(&env, &admin);
+    let new_admin = registered_address(&env);
+
+    client.set_admin(&new_admin);
+
+    // An AdminChanged event records the handover: topics [AdminChanged, old,
+    // new], empty data payload.
+    assert_eq!(
+        env.events().all(),
+        soroban_sdk::vec![
+            &env,
+            (
+                id,
+                soroban_sdk::vec![
+                    &env,
+                    Symbol::new(&env, "AdminChanged").into_val(&env),
+                    admin.into_val(&env),
+                    new_admin.into_val(&env),
+                ],
+                ().into_val(&env),
+            ),
+        ]
+    );
+
+    assert_eq!(client.get_admin(), new_admin);
+}
+
+#[test]
+fn test_set_admin_rejects_non_existent_address() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    assert_eq!(
+        client
+            .try_set_admin(&generate_address(&env))
+            .unwrap_err()
+            .unwrap(),
+        ContractError::InvalidAdminAddress
+    );
+    assert_eq!(client.get_admin(), admin);
+}
+
+#[test]
+fn test_admin_only_operations_require_admin_auth() {
+    let env = Env::default();
+    // No mock_all_auths: the caller is the deployer test account, not the
+    // factory admin, so the admin `require_auth` fails and the `try_` call
+    // captures the failure.
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+
+    let params = make_params(
+        &env,
+        &registered_address(&env),
+        &registered_address(&env),
+        "Alpha",
+        "ALPHA",
+    );
+    assert!(client.try_create_token(&params).is_err());
+    assert!(client.try_set_admin(&registered_address(&env)).is_err());
+}
+
+#[test]
 fn test_token_count_tracks_registrations() {
     let env = Env::default();
     env.mock_all_auths();
