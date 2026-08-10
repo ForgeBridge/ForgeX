@@ -5,10 +5,16 @@ use crate::error::TokenError;
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct TokenMetadata {
+    /// The current admin, the only address allowed to perform privileged
+    /// operations (mint, burn, pause, revoke, upgrade, ...).
     pub admin: Address,
+    /// The token's display name (1-32 bytes).
     pub name: String,
+    /// The token's ticker symbol (1-32 bytes).
     pub symbol: String,
+    /// The number of decimals used to represent token amounts (0-255).
     pub decimals: u32,
+    /// The maximum total supply the token may ever reach.
     pub max_supply: i128,
 }
 
@@ -36,6 +42,8 @@ impl TokenMetadata {
         }
     }
 
+    /// Validates the metadata, then persists it as the contract's instance
+    /// storage. Used during construction to record the token's configuration.
     pub fn save(
         env: &Env,
         admin: Address,
@@ -55,14 +63,17 @@ impl TokenMetadata {
         env.storage().instance().set(&"metadata", &metadata);
     }
 
+    /// Loads the stored metadata. Panics if the contract was never constructed.
     pub fn load(env: &Env) -> TokenMetadata {
         env.storage().instance().get(&"metadata").unwrap()
     }
 
+    /// Returns just the stored admin address.
     pub fn admin(env: &Env) -> Address {
         Self::load(env).admin
     }
 
+    /// Returns just the configured maximum total supply.
     pub fn max_supply(env: &Env) -> i128 {
         Self::load(env).max_supply
     }

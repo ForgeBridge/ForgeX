@@ -137,6 +137,8 @@ impl TokenContract {
         Ok(())
     }
 
+    /// Returns the token balance of `id`. Publicly queryable without
+    /// authorization.
     pub fn balance_of(env: Env, id: Address) -> i128 {
         TokenContract::read_balance(&env, &id)
     }
@@ -178,6 +180,8 @@ impl TokenContract {
         Ok(())
     }
 
+    /// Returns the allowance `spender` may currently spend from `from`'s
+    /// balance. Publicly queryable without authorization.
     pub fn allowance(env: Env, from: Address, spender: Address) -> i128 {
         Self::read_allowance(&env, &from, &spender)
     }
@@ -309,12 +313,18 @@ impl TokenContract {
         TokenMetadata::load(&env).decimals
     }
 
+    /// Returns the token's full stored metadata (admin, name, symbol, decimals,
+    /// and max supply). Publicly queryable without authorization.
     pub fn metadata(env: Env) -> TokenMetadata {
         TokenMetadata::load(&env)
     }
 }
 
 impl TokenContract {
+    /// Core minting logic shared by the public entry points. Emits the SEP-41
+    /// `mint` event and enforces the configured `max_supply` cap. Performs no
+    /// authorization or pause checking itself, so callers must first verify
+    /// admin authorization and the contract's paused state.
     pub fn mint_unchecked(env: &Env, to: Address, amount: i128) -> Result<i128, TokenError> {
         if amount <= 0 {
             return Err(TokenError::NegativeAmountError);
@@ -336,6 +346,10 @@ impl TokenContract {
         Ok(amount)
     }
 
+    /// Core burning logic shared by the public entry points. Emits the SEP-41
+    /// `burn` event. Performs no authorization or pause checking itself, so
+    /// callers must first verify admin authorization and the contract's paused
+    /// state.
     pub fn burn_unchecked(env: &Env, from: Address, amount: i128) -> Result<i128, TokenError> {
         if amount <= 0 {
             return Err(TokenError::NegativeAmountError);
@@ -352,6 +366,10 @@ impl TokenContract {
         Ok(amount)
     }
 
+    /// Core balance movement shared by `transfer`, `transfer_from`, and
+    /// `admin_transfer`. Emits the SEP-41 `transfer` event. Performs no
+    /// authorization, pause, or transfer-hook handling itself, so callers must
+    /// apply those guards before delegating here.
     pub fn transfer_unchecked(
         env: &Env,
         from: Address,
@@ -475,6 +493,8 @@ impl TokenContract {
             .set(&Symbol::new(env, "paused"), &paused);
     }
 
+    /// Reads the stored balance of `addr`, defaulting to zero for addresses that
+    /// have never been funded.
     pub fn read_balance(env: &Env, addr: &Address) -> i128 {
         env.storage().persistent().get(&addr).unwrap_or(0)
     }
@@ -506,6 +526,8 @@ impl TokenContract {
         Ok(())
     }
 
+    /// Reads the stored total supply, defaulting to zero for contracts that have
+    /// not minted anything yet.
     pub fn read_total_supply(env: &Env) -> i128 {
         env.storage()
             .persistent()
@@ -513,12 +535,16 @@ impl TokenContract {
             .unwrap_or(0)
     }
 
+    /// Writes the total supply. Callers must keep this consistent with the sum of
+    /// all balances; no cross-check is performed.
     pub fn write_total_supply(env: &Env, amount: i128) {
         env.storage()
             .persistent()
             .set(&Symbol::new(env, "total_supply"), &amount);
     }
 
+    /// Reads the allowance `spender` may spend from `from`, defaulting to zero
+    /// when no allowance has been set (or it was fully consumed).
     pub fn read_allowance(env: &Env, from: &Address, spender: &Address) -> i128 {
         let key = (from.clone(), spender.clone());
         env.storage().persistent().get(&key).unwrap_or(0)
@@ -543,6 +569,9 @@ impl TokenContract {
         Ok(())
     }
 
+    /// Stores the allowance `spender` may spend from `from`. The `expiration`
+    /// ledger argument is currently unused and reserved for future SEP-41
+    /// expiration support; callers pass it through for interface compatibility.
     pub fn write_allowance(
         env: &Env,
         from: &Address,
