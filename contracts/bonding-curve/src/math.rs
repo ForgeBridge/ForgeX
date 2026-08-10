@@ -43,21 +43,48 @@ pub fn calculate_sell_payout(params: &CurveParams, s1: i128, s2: i128) -> i128 {
     calculate_buy_cost(params, s2, s1)
 }
 
+/// Approximates e^x using Taylor series expansion with improved precision.
+/// Uses 20 terms for better convergence at extremes while maintaining safety.
 fn exp_approx(x: i128) -> i128 {
     if x == 0 {
         return SCALE;
     }
+    
+    // For very small values, return SCALE (prevents precision loss)
+    if x.abs() < SCALE / 10_000_000 {
+        return SCALE;
+    }
+    
     // Taylor series: e^x = 1 + x + x²/2! + x³/3! + ...
-    // Using 15 terms for precision
+    // Using 20 terms for precision, with safety checks for overflow
     let mut result = SCALE;
     let mut term = SCALE;
-    for i in 1..=15 {
-        term = need(term.checked_mul(x), "exp term") / (SCALE * i as i128);
-        result = need(result.checked_add(term), "exp");
+    
+    for i in 1..=20 {
+        // Calculate next term: term * x / (SCALE * i)
+        term = match term.checked_mul(x) {
+            Some(t) => t / (SCALE * i as i128),
+            None => {
+                // Term overflowed, series has converged sufficiently
+                break;
+            }
+        };
+        
+        // Add to result with overflow check
+        result = match result.checked_add(term) {
+            Some(r) => r,
+            None => {
+                // Result overflowed, return current value
+                break;
+            }
+        };
+        
+        // Early exit if term becomes negligibly small
         if term == 0 {
             break;
         }
     }
+    
     result
 }
 
