@@ -17,6 +17,7 @@ pub enum TokenError {
     InvalidMetadataError = 11,
     ContractPausedError = 12,
     HooksError = 13,
+    MaxSupplyError = 14,
 }
 
 impl TokenError {

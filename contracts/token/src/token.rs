@@ -43,8 +43,9 @@ impl TokenContract {
     /// Mints `amount` tokens to `to`. Admin only.
     ///
     /// Returns `Err` instead of panicking on invalid input: minting while
-    /// paused, a non-positive `amount`, or an amount that would overflow the
-    /// total supply all yield a structured error and change nothing.
+    /// paused, a non-positive `amount`, an amount that would overflow the
+    /// total supply, or an amount that would push the total supply above the
+    /// configured `max_supply` all yield a structured error and change nothing.
     pub fn mint(env: Env, to: Address, amount: i128) -> Result<i128, TokenError> {
         Self::ensure_not_paused(&env)?;
         let admin = TokenMetadata::admin(&env);
@@ -297,7 +298,7 @@ impl TokenContract {
             None => return Err(TokenError::OverflowError),
         };
         if supply > max_supply {
-            return Err(TokenError::InternalError);
+            return Err(TokenError::MaxSupplyError);
         }
         Self::write_total_supply(env, supply);
         Self::try_receive_balance(env, &to, amount)?;

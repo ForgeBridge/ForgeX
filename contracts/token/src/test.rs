@@ -10,6 +10,26 @@ fn generate_address(env: &Env) -> Address {
     <Address as testutils::Address>::generate(env)
 }
 
+/// Deploys a token whose max supply is small enough that tests can exhaust it.
+fn deploy_token_with_max_supply<'a>(
+    env: &'a Env,
+    admin: &Address,
+    max_supply: i128,
+) -> (Address, TokenContractClient<'a>) {
+    let contract_id = env.register(
+        TokenContract,
+        TokenContractArgs::__constructor(
+            admin,
+            &String::from_str(env, "Test Token"),
+            &String::from_str(env, "TEST"),
+            &7u32,
+            &max_supply,
+        ),
+    );
+    let client = TokenContractClient::new(env, &contract_id);
+    (contract_id, client)
+}
+
 fn deploy_token<'a>(env: &'a Env, admin: &Address) -> (Address, TokenContractClient<'a>) {
     let contract_id = env.register(
         TokenContract,
@@ -699,6 +719,77 @@ fn test_mint_rejects_non_positive_amounts() {
     assert!(client.try_mint(&user, &0i128).is_err());
     assert!(client.try_mint(&user, &(-5i128)).is_err());
     assert_eq!(client.balance_of(&user), 0);
+}
+
+#[test]
+fn test_max_supply_is_enforced_on_mint() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user = generate_address(&env);
+    let (_id, client) = deploy_token_with_max_supply(&env, &admin, 1000);
+
+    // Minting up to the cap succeeds.
+    let minted = client.mint(&user, &1000i128);
+    assert_eq!(minted, 1000);
+    assert_eq!(client.total_supply(), 1000);
+
+    // Any further minting is refused and no state changes.
+    let result = client.try_mint(&user, &1i128);
+    assert!(result.is_err());
+    let result = client.try_mint(&user, &0i128);
+    assert!(result.is_err());
+    assert_eq!(client.total_supply(), 1000);
+    assert_eq!(client.balance_of(&user), 1000);
+}
+
+#[test]
+fn test_max_supply_split_across_accounts_is_still_enforced() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let user1 = generate_address(&env);
+    let user2 = generate_address(&env);
+    let (_id, client) = deploy_token_with_max_supply(&env, &admin, 1000);
+
+    // Partial fills approach the cap from two accounts; the final over-cap
+    // mint is refused regardless of which balance it targets.
+    client.mint(&user1, &600i128);
+    client.mint(&user2, &400i128);
+    assert_eq!(client.total_supply(), 1000);
+
+    assert!(client.try_mint(&user1, &1i128).is_err());
+    assert!(client.try_mint(&user2, &1i128).is_err());
+    assert_eq!(client.total_supply(), 1000);
+    assert_eq!(client.balance_of(&user1), 600);
+    assert_eq!(client.balance_of(&user2), 400);
+}
+
+#[test]
+fn test_constructor_rejects_negative_max_supply() {
+    let env = Env::default();
+    let admin = generate_address(&env);
+    let ok: i32 = 0;
+    let rejecting = |max_supply: i128| -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            env.register(
+                TokenContract,
+                TokenContractArgs::__constructor(
+                    &admin,
+                    &String::from_str(&env, "T"),
+                    &String::from_str(&env, "T"),
+                    &7u32,
+                    &max_supply,
+                ),
+            );
+            ok
+        }))
+        .is_err()
+    };
+
+    assert!(rejecting(-1i128));
+    assert!(!rejecting(0i128));
+    assert!(!rejecting(10_000_000_000_000_000i128));
 }
 
 #[test]
