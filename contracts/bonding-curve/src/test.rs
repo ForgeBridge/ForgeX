@@ -56,3 +56,47 @@ fn test_get_curve_info() {
     assert_eq!(info.reserve, 0);
     assert_eq!(info.tokens_sold, 0);
 }
+
+#[test]
+fn test_buy_rejects_non_positive_amounts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_id, client) = deploy_curve(&env);
+    let buyer = generate_address(&env);
+    assert!(client.try_buy(&buyer, &0i128).is_err());
+    assert!(client.try_buy(&buyer, &(-10i128)).is_err());
+    assert_eq!(client.get_tokens_sold(), 0);
+    assert_eq!(client.get_reserve(), 0);
+}
+
+#[test]
+fn test_sell_rejects_invalid_amounts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_id, client) = deploy_curve(&env);
+    let seller = generate_address(&env);
+    // Selling nothing or more than the total sold is rejected.
+    assert!(client.try_sell(&seller, &0i128).is_err());
+    assert!(client.try_sell(&seller, &(-10i128)).is_err());
+    // Nothing has been sold yet, so any positive sell amount is also invalid.
+    assert!(client.try_sell(&seller, &100i128).is_err());
+    assert_eq!(client.get_tokens_sold(), 0);
+    assert_eq!(client.get_reserve(), 0);
+}
+
+#[test]
+fn test_buy_keeps_state_consistent() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_id, client) = deploy_curve(&env);
+    let buyer = generate_address(&env);
+    let cost = client.buy(&buyer, &1000i128);
+    // After a buy the recorded supply always grows by the bought amount and
+    // the reserve always grows by the charged cost, whatever the cost is.
+    assert_eq!(client.get_tokens_sold(), 1000);
+    assert_eq!(client.get_reserve(), cost);
+    let info = client.get_curve_info();
+    assert_eq!(info.tokens_sold, 1000);
+    assert_eq!(info.reserve, cost);
+    assert_eq!(info.market_cap, info.price * info.tokens_sold / 10_000_000);
+}

@@ -1,5 +1,7 @@
 use soroban_sdk::{contracttype, Address, Env, String};
 
+use crate::error::TokenError;
+
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct TokenMetadata {
@@ -11,6 +13,25 @@ pub struct TokenMetadata {
 }
 
 impl TokenMetadata {
+    /// Validates token metadata against the constraints of the SEP-41 token
+    /// metadata format:
+    ///
+    /// - `name` must be non-empty and at most 32 bytes (the XDR `SCSymbol`
+    ///   limit the standard format stores names under).
+    /// - `symbol` must be non-empty and at most 32 bytes, for the same reason.
+    /// - `decimals` must be between 0 and 255.
+    pub fn validate(env: &Env, name: &String, symbol: &String, decimals: u32) {
+        if name.is_empty() || name.len() > 32 {
+            TokenError::InvalidMetadataError.panic(env);
+        }
+        if symbol.is_empty() || symbol.len() > 32 {
+            TokenError::InvalidMetadataError.panic(env);
+        }
+        if decimals > 255 {
+            TokenError::DecimalsError.panic(env);
+        }
+    }
+
     pub fn save(
         env: &Env,
         admin: Address,
@@ -19,6 +40,7 @@ impl TokenMetadata {
         decimals: u32,
         max_supply: i128,
     ) {
+        Self::validate(env, &name, &symbol, decimals);
         let metadata = TokenMetadata {
             admin,
             name,
@@ -39,5 +61,12 @@ impl TokenMetadata {
 
     pub fn max_supply(env: &Env) -> i128 {
         Self::load(env).max_supply
+    }
+
+    /// Replaces the stored admin with `admin`.
+    pub fn set_admin(env: &Env, admin: Address) {
+        let mut metadata = Self::load(env);
+        metadata.admin = admin;
+        env.storage().instance().set(&"metadata", &metadata);
     }
 }
