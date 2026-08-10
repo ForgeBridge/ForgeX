@@ -180,6 +180,12 @@ impl FactoryContract {
         Ok((params.token_id, params.curve_id))
     }
 
+    /// Returns whether a token with `token_id` is registered. Publicly
+    /// queryable.
+    pub fn has_token(env: Env, token_id: Address) -> bool {
+        Registry::has(&env, &token_id)
+    }
+
     /// Returns metadata for every token registered so far, in creation order.
     /// Publicly queryable.
     pub fn get_all_tokens(env: Env) -> Vec<TokenInfo> {
