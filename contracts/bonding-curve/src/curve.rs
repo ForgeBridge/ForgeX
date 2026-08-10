@@ -61,10 +61,15 @@ impl BondingCurveContract {
     /// (`S -> S + amount_out`), adds it to the reserve, records the newly
     /// issued tokens in `tokens_sold`, and returns the cost paid. The caller
     /// supplies a `max_cost` slippage limit: if the executed cost exceeds it,
-    /// the buy is refused and nothing changes. Panics on a non-positive
-    /// amount, a supply/reserve overflow, or slippage above `max_cost`.
-    pub fn buy(env: Env, buyer: Address, amount_out: i128, max_cost: i128) -> i128 {
+    /// the buy is refused and nothing changes. `deadline` is the latest ledger
+    /// timestamp (in seconds) at which the order may execute; after it passes
+    /// the buy is refused. Panics on a non-positive amount, a supply/reserve
+    /// overflow, slippage above `max_cost`, or an expired deadline.
+    pub fn buy(env: Env, buyer: Address, amount_out: i128, max_cost: i128, deadline: u64) -> i128 {
         buyer.require_auth();
+        if env.ledger().timestamp() > deadline {
+            panic!("bonding curve: buy deadline expired");
+        }
         if amount_out <= 0 {
             panic!("bonding curve: buy amount must be positive");
         }
@@ -105,11 +110,22 @@ impl BondingCurveContract {
     /// (`S -> S - amount_in`), deducts it from the reserve, records the
     /// returned tokens in `tokens_sold`, and returns the payout received. The
     /// seller supplies a `min_payout` slippage limit: if the executed payout
-    /// is below it, the sell is refused and nothing changes. Panics on a
-    /// non-positive amount, a sell exceeding `tokens_sold`, a reserve
-    /// underflow, or slippage below `min_payout`.
-    pub fn sell(env: Env, seller: Address, amount_in: i128, min_payout: i128) -> i128 {
+    /// is below it, the sell is refused and nothing changes. `deadline` is the
+    /// latest ledger timestamp (in seconds) at which the order may execute;
+    /// after it passes the sell is refused. Panics on a non-positive amount, a
+    /// sell exceeding `tokens_sold`, a reserve underflow, slippage below
+    /// `min_payout`, or an expired deadline.
+    pub fn sell(
+        env: Env,
+        seller: Address,
+        amount_in: i128,
+        min_payout: i128,
+        deadline: u64,
+    ) -> i128 {
         seller.require_auth();
+        if env.ledger().timestamp() > deadline {
+            panic!("bonding curve: sell deadline expired");
+        }
         if amount_in <= 0 {
             panic!("bonding curve: sell amount must be positive");
         }
