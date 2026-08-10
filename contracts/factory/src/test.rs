@@ -485,6 +485,30 @@ fn test_registry_records_verified_deployed_addresses() {
 }
 
 #[test]
+fn test_has_token() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+    let token = registered_address(&env);
+    let unknown = registered_address(&env);
+
+    assert!(!client.has_token(&token));
+    assert!(!client.has_token(&unknown));
+
+    client.create_token(&make_params(
+        &env,
+        &token,
+        &registered_address(&env),
+        "Alpha",
+        "ALPHA",
+    ));
+
+    assert!(client.has_token(&token));
+    assert!(!client.has_token(&unknown));
+}
+
+#[test]
 fn test_get_token_by_name() {
     let env = Env::default();
     env.mock_all_auths();
