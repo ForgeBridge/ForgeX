@@ -30,13 +30,25 @@ pub struct CreateTokenParams {
     pub decimals: u32,
     /// Maximum total supply the token may ever reach.
     pub max_supply: i128,
-    /// Optional image URI for the token's branding.
+    /// Optional image URI for the token's branding (at most 255 bytes).
     pub image_uri: String,
-    /// Optional free-text description of the token.
+    /// Optional free-text description of the token (at most 1024 bytes).
     pub description: String,
     /// Bonding curve parameters for the token's curve contract.
     pub curve_params: CurveParams,
 }
+
+/// Maximum byte length of a validated token name or symbol, mirroring the
+/// SEP-41 metadata format constraint enforced by the token contract.
+const MAX_NAME_SYMBOL_LEN: u32 = 32;
+
+/// Maximum byte length of the token's image URI. Keeps registry storage
+/// bounded.
+const MAX_IMAGE_URI_LEN: u32 = 255;
+
+/// Maximum byte length of the token's description. Keeps registry storage
+/// bounded.
+const MAX_DESCRIPTION_LEN: u32 = 1024;
 
 /// Public, on-chain registry record for a created token. Returned by the
 /// factory's read entry points.
@@ -125,20 +137,7 @@ impl FactoryContract {
     ) -> Result<(Address, Address), ContractError> {
         let admin = Self::read_admin(&env);
         admin.require_auth();
-        // Mirror the token contract's SEP-41 metadata validation so the
-        // registry never holds records that could not be a real token.
-        if params.name.is_empty() || params.name.len() > 32 {
-            return Err(ContractError::InvalidMetadata);
-        }
-        if params.symbol.is_empty() || params.symbol.len() > 32 {
-            return Err(ContractError::InvalidMetadata);
-        }
-        if params.decimals > 255 {
-            return Err(ContractError::InvalidMetadata);
-        }
-        if params.max_supply < 0 {
-            return Err(ContractError::InvalidMetadata);
-        }
+        Self::validate_params(&params)?;
         if Registry::has(&env, &params.token_id)
             || Registry::has_name(&env, &params.name)
             || Registry::has_symbol(&env, &params.symbol)
@@ -219,6 +218,41 @@ impl FactoryContract {
     /// which cannot happen because every operation requires an admin.
     fn read_admin(env: &Env) -> Address {
         env.storage().instance().get(&"admin").unwrap()
+    }
+
+    /// Validates create input before anything is written to the registry.
+    ///
+    /// Mirrors the token contract's SEP-41 metadata constraints (1-32 byte
+    /// name and symbol, decimals 0-255, non-negative max supply) and bounds
+    /// the free-form image URI and description so registry storage stays
+    /// finite. The curve parameters must describe a usable curve: a positive
+    /// initial price and steepness, and a non-negative reserve target.
+    fn validate_params(params: &CreateTokenParams) -> Result<(), ContractError> {
+        if params.name.is_empty() || params.name.len() > MAX_NAME_SYMBOL_LEN {
+            return Err(ContractError::InvalidMetadata);
+        }
+        if params.symbol.is_empty() || params.symbol.len() > MAX_NAME_SYMBOL_LEN {
+            return Err(ContractError::InvalidMetadata);
+        }
+        if params.decimals > 255 {
+            return Err(ContractError::InvalidMetadata);
+        }
+        if params.max_supply < 0 {
+            return Err(ContractError::InvalidMetadata);
+        }
+        if params.image_uri.len() > MAX_IMAGE_URI_LEN {
+            return Err(ContractError::InvalidMetadata);
+        }
+        if params.description.len() > MAX_DESCRIPTION_LEN {
+            return Err(ContractError::InvalidMetadata);
+        }
+        if params.curve_params.initial_price <= 0
+            || params.curve_params.steepness <= 0
+            || params.curve_params.reserve_target < 0
+        {
+            return Err(ContractError::InvalidCurveParams);
+        }
+        Ok(())
     }
 }
 
