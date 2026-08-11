@@ -6,6 +6,8 @@ target/
 dist/
 .next/
 *.wasm
+*.tsbuildinfo
+next-env.d.ts
 
 # Environment
 .env
