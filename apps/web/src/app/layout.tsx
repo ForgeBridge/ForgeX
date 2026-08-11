@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Header } from '../components/layout/Header'
+import { EnvValidationBanner } from '../components/common/EnvValidationBanner'
 import { WalletErrorBanner } from '../components/wallet/WalletErrorBanner'
 import { NetworkMismatchBanner } from '../components/wallet/NetworkMismatchBanner'
 import { ToastContainer } from '../components/ui/Toast'
@@ -55,6 +56,7 @@ export default function RootLayout({
       <body className="min-h-screen">
         <div className="flex flex-col min-h-screen">
           <Header />
+          <EnvValidationBanner />
           <NetworkMismatchBanner />
           <WalletErrorBanner />
           <main className="flex-1">
