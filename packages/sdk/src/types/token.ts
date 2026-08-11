@@ -1,3 +1,5 @@
+import type { CurveParams } from './curve'
+
 export interface TokenInfo {
   token_id: string
   curve_id: string

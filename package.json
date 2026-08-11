@@ -10,9 +10,11 @@
   "scripts": {
     "build:sdk": "npm run build -w packages/sdk",
     "build:web": "npm run build -w apps/web",
+    "build": "npm run build:sdk && npm run build:web",
     "dev:web": "npm run dev -w apps/web",
     "lint": "npm run lint -w apps/web",
-    "typecheck": "npm run typecheck -w apps/web"
+    "typecheck": "npm run typecheck -w apps/web",
+    "test": "npm run test -w apps/web"
   },
   "engines": {
     "node": ">=18"
