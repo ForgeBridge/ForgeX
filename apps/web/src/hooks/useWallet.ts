@@ -1,6 +1,9 @@
 'use client'
 
 import { create } from 'zustand'
+import { NETWORKS, DEFAULT_NETWORK } from '../lib/constants'
+
+export type SupportedNetwork = 'testnet' | 'mainnet'
 
 /** Freighter API error shape */
 interface FreighterApiError {
@@ -13,30 +16,56 @@ export interface WalletState {
   isConnected: boolean
   isConnecting: boolean
   error: string | null
+  network: SupportedNetwork
   networkPassphrase: string | null
+  isNetworkMismatch: boolean
+  setNetwork: (network: SupportedNetwork) => void
   connect: () => Promise<void>
   disconnect: () => void
   clearError: () => void
+  checkNetwork: () => Promise<void>
 }
 
 /**
- * Wallet store using Zustand for Freighter wallet connection.
+ * Wallet store using Zustand for Freighter wallet connection and network management.
  * 
  * Security considerations:
  * - No private keys are stored or accessed
  * - Only public address is held in state
+ * - Network mismatch detection protects against signing transactions on the wrong network
  * - Connection errors are sanitized before display
- * - Freighter extension handles all signing
  */
 export const useWalletStore = create<WalletState>((set, get) => ({
   address: null,
   isConnected: false,
   isConnecting: false,
   error: null,
+  network: (process.env.NEXT_PUBLIC_DEFAULT_NETWORK as SupportedNetwork) || DEFAULT_NETWORK,
   networkPassphrase: null,
+  isNetworkMismatch: false,
+
+  setNetwork: (network: SupportedNetwork) => {
+    const { networkPassphrase, isConnected } = get()
+    const expectedPassphrase = NETWORKS[network]?.networkPassphrase
+    const isMismatch = Boolean(isConnected && networkPassphrase && networkPassphrase !== expectedPassphrase)
+    set({ network, isNetworkMismatch: isMismatch })
+  },
+
+  checkNetwork: async () => {
+    try {
+      const freighter = await import('@stellar/freighter-api')
+      const networkResult = await freighter.getNetworkDetails()
+      const networkPassphrase = networkResult.networkPassphrase ?? null
+      const { network, isConnected } = get()
+      const expectedPassphrase = NETWORKS[network]?.networkPassphrase
+      const isMismatch = Boolean(isConnected && networkPassphrase && networkPassphrase !== expectedPassphrase)
+      set({ networkPassphrase, isNetworkMismatch: isMismatch })
+    } catch {
+      // Ignored if freighter unavailable
+    }
+  },
 
   connect: async () => {
-    // Prevent concurrent connection attempts
     if (get().isConnecting) return
 
     set({ isConnecting: true, error: null })
@@ -44,7 +73,6 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     try {
       const freighter = await import('@stellar/freighter-api')
 
-      // Check if Freighter extension is installed
       const connectionResult = await freighter.isConnected()
       if (connectionResult.error || !connectionResult.isConnected) {
         set({
@@ -54,13 +82,11 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         return
       }
 
-      // Request access if not already allowed
       const allowedResult = await freighter.isAllowed()
       if (!allowedResult.isAllowed) {
         await freighter.requestAccess()
       }
 
-      // Get the public address
       const result = await freighter.getAddress()
       if (result.error) {
         const err = result.error as FreighterApiError
@@ -71,9 +97,11 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         return
       }
 
-      // Get current network info
       const networkResult = await freighter.getNetworkDetails()
       const networkPassphrase = networkResult.networkPassphrase ?? null
+      const currentNetwork = get().network
+      const expectedPassphrase = NETWORKS[currentNetwork]?.networkPassphrase
+      const isNetworkMismatch = Boolean(networkPassphrase && networkPassphrase !== expectedPassphrase)
 
       set({
         address: result.address,
@@ -81,6 +109,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         isConnecting: false,
         error: null,
         networkPassphrase,
+        isNetworkMismatch,
       })
     } catch (err) {
       const message =
@@ -101,6 +130,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       isConnecting: false,
       error: null,
       networkPassphrase: null,
+      isNetworkMismatch: false,
     })
   },
 
@@ -109,10 +139,6 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 }))
 
-/**
- * Sanitize wallet error messages to prevent leaking internal details.
- * Only return user-safe error descriptions.
- */
 function sanitizeWalletError(message: string): string {
   const lower = message.toLowerCase()
 
@@ -129,6 +155,5 @@ function sanitizeWalletError(message: string): string {
     return 'Connection timed out. Please try again.'
   }
 
-  // Generic fallback — don't leak internal error details
   return 'Failed to connect wallet. Please try again.'
 }
