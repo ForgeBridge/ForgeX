@@ -8,6 +8,7 @@ import { useSoroban } from '../../hooks/useSoroban'
 import { useTradeStore } from '../../hooks/useBondingCurve'
 import { useToastStore } from '../../hooks/useToast'
 import { parseTokenAmount } from '@forgex/sdk'
+import { sanitizeNumericInput, validateTradeAmount } from '../../lib/inputGuards'
 import { QuotePreview } from './QuotePreview'
 import { TransactionConfirmationModal, OrderDetails } from './TransactionConfirmationModal'
 
@@ -32,7 +33,7 @@ export function BuyForm({
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const { isConnected, address, connect, network } = useWalletStore()
+  const { isConnected, address, balance, connect, network } = useWalletStore()
   const { addToast, updateToast } = useToastStore()
   const soroban = useSoroban()
   const slippage = useTradeStore((state) => state.slippage)
@@ -55,6 +56,12 @@ export function BuyForm({
       }
     : null
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitized = sanitizeNumericInput(e.target.value, tokenDecimals)
+    setAmount(sanitized)
+    if (error) setError(null)
+  }
+
   const handleOpenConfirm = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -65,10 +72,23 @@ export function BuyForm({
       return
     }
 
-    const trimmed = amount.trim()
-    if (!trimmed || parseFloat(trimmed) <= 0) {
-      setError('Please enter a valid amount greater than 0')
+    const validation = validateTradeAmount(amount, {
+      maxDecimals: tokenDecimals,
+      tokenSymbol,
+    })
+
+    if (!validation.isValid) {
+      setError(validation.error || 'Invalid amount')
       return
+    }
+
+    // Check estimated total XLM cost against wallet balance
+    if (balance !== null) {
+      const balanceNum = parseFloat(balance)
+      if (!isNaN(balanceNum) && maxCost > balanceNum) {
+        setError(`Insufficient XLM balance (estimated cost: ${maxCost.toFixed(2)} XLM, balance: ${balanceNum} XLM)`)
+        return
+      }
     }
 
     setShowConfirmModal(true)
@@ -145,15 +165,11 @@ export function BuyForm({
 
         <Input
           label={`Amount (${tokenSymbol})`}
-          type="number"
-          step="any"
-          min="0"
+          type="text"
+          inputMode="decimal"
           placeholder="0.0"
           value={amount}
-          onChange={(e) => {
-            setAmount(e.target.value)
-            if (error) setError(null)
-          }}
+          onChange={handleAmountChange}
           disabled={isSubmitting}
           required
         />
