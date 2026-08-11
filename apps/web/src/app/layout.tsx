@@ -6,8 +6,43 @@ import { ToastContainer } from '../components/ui/Toast'
 import '../styles/globals.css'
 
 export const metadata: Metadata = {
-  title: 'ForgeX — Forge your token on Stellar',
-  description: 'Create, trade, and discover tokens on Stellar/Soroban with zero upfront liquidity.',
+  metadataBase: new URL('https://forgex.fi'),
+  title: {
+    default: 'ForgeX — Launch & Trade Tokens on Stellar',
+    template: '%s | ForgeX',
+  },
+  description: 'Fair launch bonding curve launchpad for tokens on Stellar and Soroban with zero upfront liquidity.',
+  keywords: [
+    'Stellar',
+    'Soroban',
+    'ForgeX',
+    'Bonding Curve',
+    'Token Launchpad',
+    'AMM',
+    'Crypto',
+    'XLM',
+    'DeFi',
+  ],
+  authors: [{ name: 'ForgeX Protocol' }],
+  creator: 'ForgeX Protocol',
+  openGraph: {
+    title: 'ForgeX — Launch & Trade Tokens on Stellar',
+    description: 'Fair launch bonding curve launchpad for tokens on Stellar and Soroban.',
+    url: 'https://forgex.fi',
+    siteName: 'ForgeX',
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ForgeX — Launch & Trade Tokens on Stellar',
+    description: 'Fair launch bonding curve launchpad for tokens on Stellar and Soroban.',
+    creator: '@forgex',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 export default function RootLayout({
