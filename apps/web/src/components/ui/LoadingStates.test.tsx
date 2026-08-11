@@ -23,8 +23,11 @@ describe('Loading States (Spinner, PageLoader, TokenFeed)', () => {
     expect(screen.getByText(/Loading tokens from Soroban…/i)).toBeInTheDocument()
   })
 
-  it('renders tokens when TokenFeed loading finishes', () => {
-    render(<TokenFeed loading={false} />)
+  it('renders tokens when TokenFeed loading finishes with tokens provided', () => {
+    const mockTokens = [
+      { name: 'ForgeX Doge', symbol: 'FDOGE', marketCap: '12,450', price: '0.00001', createdAt: Date.now() / 1000 },
+    ]
+    render(<TokenFeed loading={false} tokens={mockTokens} />)
     expect(screen.getByText(/ForgeX Doge/i)).toBeInTheDocument()
   })
 })
