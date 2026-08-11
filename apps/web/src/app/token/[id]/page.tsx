@@ -8,6 +8,7 @@ import { PageLoader } from '../../../components/ui/PageLoader'
 import { ErrorView } from '../../../components/ui/ErrorView'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { TokenDetailHeader } from '../../../components/tokens/TokenDetailHeader'
+import { TokenStatsRow, TokenStats } from '../../../components/tokens/TokenStatsRow'
 import { usePolling } from '../../../hooks/usePolling'
 import { useWalletStore } from '../../../hooks/useWallet'
 
@@ -25,12 +26,10 @@ export default function TokenDetailPage() {
     curveId?: string
     creator?: string
     createdAt?: number
-    price: string
-    marketCap: string
-    reserve: string
-    description: string
+    description?: string
     imageUri?: string
     website?: string
+    stats: TokenStats
   } | null>(null)
 
   const fetchTokenData = useCallback(async () => {
@@ -47,12 +46,20 @@ export default function TokenDetailPage() {
         curveId: prev?.curveId || `${tokenId}_curve`,
         creator: prev?.creator || 'GDJY...CREATOR',
         createdAt: prev?.createdAt || Math.floor(Date.now() / 1000) - 86400 * 3,
-        price: prev?.price || '0.0001',
-        marketCap: prev?.marketCap || '100,000',
-        reserve: prev?.reserve || '5,000',
         description: prev?.description || 'First community forged token on Stellar Soroban with exponential bonding curve.',
         imageUri: prev?.imageUri,
         website: 'https://forgex.fi',
+        stats: {
+          price: prev?.stats.price || '0.0001',
+          priceChange24h: prev?.stats.priceChange24h ?? 4.25,
+          marketCap: prev?.stats.marketCap || '100,000',
+          reserveBalance: prev?.stats.reserveBalance || '5,000',
+          totalSupply: '1,000,000,000',
+          circulatingSupply: '650,000,000',
+          volume24h: '12,850',
+          tradeCount24h: 38,
+          graduationThreshold: '50,000',
+        },
       }))
       setError(null)
     } catch (err: unknown) {
@@ -112,16 +119,18 @@ export default function TokenDetailPage() {
         isLive={isPolling}
       />
 
+      <TokenStatsRow stats={tokenData.stats} />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <PriceChart symbol={tokenData.symbol} currentPrice={tokenData.price} />
+          <PriceChart symbol={tokenData.symbol} currentPrice={tokenData.stats.price} />
         </div>
 
         <div className="lg:col-span-1">
           <TradePanel
             curveContractId={tokenId}
             tokenSymbol={tokenData.symbol}
-            tokenPrice={tokenData.price}
+            tokenPrice={tokenData.stats.price}
           />
         </div>
       </div>
