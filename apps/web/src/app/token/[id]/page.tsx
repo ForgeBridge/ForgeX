@@ -1,17 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { PriceChart } from '../../../components/trade/PriceChart'
 import { TradePanel } from '../../../components/trade/TradePanel'
 import { PageLoader } from '../../../components/ui/PageLoader'
-import { formatXLM } from '../../../lib/format'
+import { ErrorView } from '../../../components/ui/ErrorView'
 
 export default function TokenDetailPage() {
   const params = useParams()
   const tokenId = (params?.id as string) || ''
 
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [tokenData, setTokenData] = useState<{
     name: string
     symbol: string
@@ -21,10 +22,15 @@ export default function TokenDetailPage() {
     description: string
   } | null>(null)
 
-  useEffect(() => {
-    // Simulated token fetch
+  const fetchTokenData = useCallback(async () => {
     setLoading(true)
-    const timer = setTimeout(() => {
+    setError(null)
+    try {
+      if (!tokenId) {
+        throw new Error('Token ID is required')
+      }
+      // Simulated token fetch with fallback
+      await new Promise((resolve) => setTimeout(resolve, 150))
       setTokenData({
         name: 'Forge Token',
         symbol: 'FORGE',
@@ -33,15 +39,34 @@ export default function TokenDetailPage() {
         reserve: '5,000',
         description: 'First community forged token on Stellar Soroban with exponential bonding curve.',
       })
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch token data')
+    } finally {
       setLoading(false)
-    }, 150)
-    return () => clearTimeout(timer)
+    }
   }, [tokenId])
+
+  useEffect(() => {
+    fetchTokenData()
+  }, [fetchTokenData])
 
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-12">
         <PageLoader message="Loading token and bonding curve details…" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <ErrorView
+          title="Failed to load token details"
+          message={error}
+          onRetry={fetchTokenData}
+          retryLabel="Retry"
+        />
       </div>
     )
   }
