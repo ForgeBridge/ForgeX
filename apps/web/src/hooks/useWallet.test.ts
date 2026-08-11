@@ -143,4 +143,31 @@ describe('useWalletStore', () => {
 
     resolveConnect!()
   })
+
+  it('should detect network mismatch on connection and manual check', async () => {
+    const freighter = await import('@stellar/freighter-api')
+    vi.mocked(freighter.isConnected).mockResolvedValue({ isConnected: true } as any)
+    vi.mocked(freighter.isAllowed).mockResolvedValue({ isAllowed: true } as any)
+    vi.mocked(freighter.getAddress).mockResolvedValue({ address: 'GTEST' } as any)
+    // Freighter returns Public network passphrase while app is configured for testnet
+    vi.mocked(freighter.getNetworkDetails).mockResolvedValue({
+      networkPassphrase: 'Public Global Stellar Network ; September 2015',
+    } as any)
+
+    useWalletStore.setState({ network: 'testnet' })
+
+    await act(async () => {
+      await useWalletStore.getState().connect()
+    })
+
+    const state = useWalletStore.getState()
+    expect(state.isConnected).toBe(true)
+    expect(state.isNetworkMismatch).toBe(true)
+
+    // When user switches app to mainnet, mismatch resolves
+    act(() => {
+      useWalletStore.getState().setNetwork('mainnet')
+    })
+    expect(useWalletStore.getState().isNetworkMismatch).toBe(false)
+  })
 })
