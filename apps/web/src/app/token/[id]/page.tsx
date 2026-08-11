@@ -6,6 +6,7 @@ import { PriceChart } from '../../../components/trade/PriceChart'
 import { TradePanel } from '../../../components/trade/TradePanel'
 import { PageLoader } from '../../../components/ui/PageLoader'
 import { ErrorView } from '../../../components/ui/ErrorView'
+import { EmptyState } from '../../../components/ui/EmptyState'
 
 export default function TokenDetailPage() {
   const params = useParams()
@@ -73,8 +74,13 @@ export default function TokenDetailPage() {
 
   if (!tokenData) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12 text-center">
-        <p className="text-[var(--forgex-text-muted)]">Token not found.</p>
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <EmptyState
+          title="Token Not Found"
+          description={`No bonding curve or token contract was found matching identifier "${tokenId}".`}
+          actionLabel="Explore Tokens"
+          actionHref="/"
+        />
       </div>
     )
   }
