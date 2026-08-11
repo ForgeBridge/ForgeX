@@ -3,6 +3,7 @@ import { WalletConnect } from '../components/wallet/WalletConnect'
 import { WalletErrorBanner } from '../components/wallet/WalletErrorBanner'
 import { NetworkBadge } from '../components/wallet/NetworkBadge'
 import { NetworkMismatchBanner } from '../components/wallet/NetworkMismatchBanner'
+import { ToastContainer } from '../components/ui/Toast'
 import '../styles/globals.css'
 
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default function RootLayout({
           <main className="flex-1">
             {children}
           </main>
+          <ToastContainer />
           <footer className="border-t border-[var(--forgex-border)] bg-[var(--forgex-surface)] py-8">
             <div className="max-w-7xl mx-auto px-4 text-center text-sm text-[var(--forgex-text-muted)]">
               ForgeX — Open source token launchpad on Stellar/Soroban

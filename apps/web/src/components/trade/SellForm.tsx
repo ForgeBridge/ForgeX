@@ -6,6 +6,7 @@ import { Input } from '../ui/Input'
 import { useWalletStore } from '../../hooks/useWallet'
 import { useSoroban } from '../../hooks/useSoroban'
 import { useTradeStore } from '../../hooks/useBondingCurve'
+import { useToastStore } from '../../hooks/useToast'
 import { parseTokenAmount } from '@forgex/sdk'
 import { QuotePreview } from './QuotePreview'
 import { TransactionConfirmationModal, OrderDetails } from './TransactionConfirmationModal'
@@ -33,7 +34,8 @@ export function SellForm({
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const { isConnected, address, connect } = useWalletStore()
+  const { isConnected, address, connect, network } = useWalletStore()
+  const { addToast, updateToast } = useToastStore()
   const soroban = useSoroban()
   const slippage = useTradeStore((state) => state.slippage)
 
@@ -78,6 +80,12 @@ export function SellForm({
     if (!address) return
     setIsSubmitting(true)
 
+    const pendingToastId = addToast({
+      type: 'pending',
+      title: 'Submitting Sell Order',
+      message: `Selling ${amount} ${tokenSymbol} on Soroban...`,
+    })
+
     try {
       const trimmed = amount.trim()
       const amountInBaseUnits = parseTokenAmount(trimmed, tokenDecimals).toString()
@@ -93,12 +101,28 @@ export function SellForm({
         }
       }
 
+      const txHash = 'simulated_sell_tx'
+      updateToast(pendingToastId, {
+        type: 'success',
+        title: 'Sale Confirmed',
+        message: `Successfully sold ${trimmed} ${tokenSymbol}!`,
+        txHash,
+        explorerUrl: `https://stellar.expert/explorer/${network}/contract/${curveContractId}`,
+        durationMs: 5000,
+      })
+
       setSuccessMessage(`Successfully sold ${trimmed} ${tokenSymbol}!`)
       setAmount('')
       setShowConfirmModal(false)
-      onSuccess?.({ amount: trimmed })
+      onSuccess?.({ amount: trimmed, txHash })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to execute sell transaction'
+      updateToast(pendingToastId, {
+        type: 'error',
+        title: 'Transaction Failed',
+        message: msg,
+        durationMs: 6000,
+      })
       setError(msg)
       setShowConfirmModal(false)
     } finally {

@@ -6,6 +6,7 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { useWalletStore } from '../../hooks/useWallet'
 import { useSoroban } from '../../hooks/useSoroban'
+import { useToastStore } from '../../hooks/useToast'
 import { FACTORY_CONTRACT_ID, CURVE_DEFAULTS } from '../../lib/constants'
 
 export interface CreateTokenFormProps {
@@ -14,7 +15,8 @@ export interface CreateTokenFormProps {
 
 export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
   const router = useRouter()
-  const { isConnected, address, connect } = useWalletStore()
+  const { isConnected, address, connect, network } = useWalletStore()
+  const { addToast, updateToast } = useToastStore()
   const soroban = useSoroban()
 
   const [name, setName] = useState('')
@@ -23,68 +25,53 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
   const [decimals, setDecimals] = useState('7')
   const [description, setDescription] = useState('')
   const [imageUri, setImageUri] = useState('')
-
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [txError, setTxError] = useState<string | null>(null)
-  const [createdResult, setCreatedResult] = useState<{ tokenId: string; curveId: string } | null>(null)
+  const [createdResult, setCreatedResult] = useState<{
+    tokenId: string
+    curveId: string
+  } | null>(null)
 
-  const markTouched = (field: string) => {
-    setTouched((prev) => ({ ...prev, [field]: true }))
-  }
-
-  // Field validation rules
   const errors = useMemo(() => {
     const errs: Record<string, string> = {}
 
-    // Name validation: 1-60 characters
+    // Name validation
     const trimmedName = name.trim()
     if (!trimmedName) {
       errs.name = 'Token name is required'
-    } else if (trimmedName.length > 60) {
-      errs.name = 'Token name must not exceed 60 characters'
+    } else if (trimmedName.length < 1 || trimmedName.length > 60) {
+      errs.name = 'Token name must be between 1 and 60 characters'
     }
 
-    // Symbol validation: 1-12 characters, uppercase alphanumeric only
+    // Symbol validation: 1-12 uppercase alphanumeric characters
     const trimmedSymbol = symbol.trim().toUpperCase()
     if (!trimmedSymbol) {
       errs.symbol = 'Token symbol is required'
-    } else if (trimmedSymbol.length > 12) {
-      errs.symbol = 'Token symbol must not exceed 12 characters'
-    } else if (!/^[A-Z0-9]+$/.test(trimmedSymbol)) {
-      errs.symbol = 'Symbol must contain only alphanumeric characters (A-Z, 0-9)'
+    } else if (!/^[A-Z0-9]{1,12}$/.test(trimmedSymbol)) {
+      errs.symbol = 'Symbol must contain only alphanumeric characters (1-12 chars)'
     }
 
-    // Max Supply validation: positive integer
+    // Max Supply validation: integer > 0
     const trimmedSupply = maxSupply.trim()
     if (!trimmedSupply) {
       errs.maxSupply = 'Max supply is required'
     } else {
-      try {
-        const supplyVal = BigInt(trimmedSupply)
-        if (supplyVal <= 0n) {
-          errs.maxSupply = 'Max supply must be greater than 0'
-        }
-      } catch {
-        errs.maxSupply = 'Max supply must be a valid positive integer'
+      const numSupply = Number(trimmedSupply)
+      if (isNaN(numSupply) || !Number.isInteger(numSupply) || numSupply <= 0) {
+        errs.maxSupply = 'Max supply must be greater than 0'
       }
     }
 
     // Decimals validation: integer 0-18
-    const decVal = parseInt(decimals, 10)
-    if (isNaN(decVal) || decVal < 0 || decVal > 18) {
-      errs.decimals = 'Decimals must be an integer between 0 and 18'
-    }
-
-    // Image URI validation
-    const trimmedUri = imageUri.trim()
-    if (trimmedUri) {
-      const isValidUri =
-        trimmedUri.startsWith('https://') ||
-        trimmedUri.startsWith('http://') ||
-        trimmedUri.startsWith('ipfs://')
-      if (!isValidUri) {
-        errs.imageUri = 'Image URI must start with https:// or ipfs://'
+    const trimmedDecimals = decimals.trim()
+    if (!trimmedDecimals) {
+      errs.decimals = 'Decimals is required'
+    } else {
+      const numDecimals = Number(trimmedDecimals)
+      if (isNaN(numDecimals) || !Number.isInteger(numDecimals) || numDecimals < 0 || numDecimals > 18) {
+        errs.decimals = 'Decimals must be an integer between 0 and 18'
       }
     }
 
@@ -93,20 +80,34 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
       errs.description = 'Description must not exceed 500 characters'
     }
 
+    // Image URI validation: must be https:// or ipfs:// if provided
+    const trimmedUri = imageUri.trim()
+    if (trimmedUri) {
+      if (!trimmedUri.startsWith('https://') && !trimmedUri.startsWith('ipfs://')) {
+        errs.imageUri = 'Image URI must start with https:// or ipfs://'
+      }
+    }
+
     return errs
-  }, [name, symbol, maxSupply, decimals, imageUri, description])
+  }, [name, symbol, maxSupply, decimals, description, imageUri])
 
   const isValid = Object.keys(errors).length === 0
 
+  const markTouched = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Mark all required fields as touched
     setTouched({
       name: true,
       symbol: true,
       maxSupply: true,
       decimals: true,
-      imageUri: true,
       description: true,
+      imageUri: true,
     })
 
     if (!isValid) return
@@ -118,6 +119,12 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
 
     setTxError(null)
     setIsSubmitting(true)
+
+    const pendingToastId = addToast({
+      type: 'pending',
+      title: 'Forging Token',
+      message: `Creating $${symbol.trim().toUpperCase()} bonding curve on Soroban...`,
+    })
 
     try {
       const factoryId = FACTORY_CONTRACT_ID || 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM'
@@ -156,10 +163,24 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
         throw err
       })
 
+      updateToast(pendingToastId, {
+        type: 'success',
+        title: 'Token Forged Successfully!',
+        message: `$${params.symbol} is now live on Stellar Soroban.`,
+        explorerUrl: `https://stellar.expert/explorer/${network}/contract/${result.tokenId}`,
+        durationMs: 6000,
+      })
+
       setCreatedResult(result)
       onSuccess?.(result)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create token transaction'
+      updateToast(pendingToastId, {
+        type: 'error',
+        title: 'Token Creation Failed',
+        message: msg,
+        durationMs: 6000,
+      })
       setTxError(msg)
     } finally {
       setIsSubmitting(false)
@@ -235,18 +256,19 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
           required
         />
         <Input
-          label="Decimals"
+          label="Decimals *"
           type="number"
           placeholder="7"
           value={decimals}
           onChange={(e) => setDecimals(e.target.value)}
           onBlur={() => markTouched('decimals')}
           error={touched.decimals ? errors.decimals : undefined}
+          required
         />
       </div>
 
       <Input
-        label="Image / Icon URL (IPFS or HTTPS)"
+        label="Image / Icon URL"
         placeholder="https://... or ipfs://..."
         value={imageUri}
         onChange={(e) => setImageUri(e.target.value)}
@@ -256,7 +278,7 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
 
       <div className="space-y-1">
         <div className="flex justify-between items-center">
-          <label htmlFor="token-description" className="block text-sm font-medium text-[var(--forgex-text-muted)]">
+          <label htmlFor="token-description" className="block text-xs font-medium text-[var(--forgex-text)]">
             Description
           </label>
           <span className="text-xs text-[var(--forgex-text-muted)]">

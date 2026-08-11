@@ -72,7 +72,7 @@ describe('Trade Forms (BuyForm, SellForm, TradePanel)', () => {
       await waitFor(() => {
         expect(screen.getByText(/Successfully purchased 100 FORGE!/i)).toBeInTheDocument()
       })
-      expect(onSuccess).toHaveBeenCalledWith({ amount: '100' })
+      expect(onSuccess).toHaveBeenCalledWith({ amount: '100', txHash: expect.any(String) })
     })
   })
 
@@ -104,7 +104,7 @@ describe('Trade Forms (BuyForm, SellForm, TradePanel)', () => {
       await waitFor(() => {
         expect(screen.getByText(/Successfully sold 50 FORGE!/i)).toBeInTheDocument()
       })
-      expect(onSuccess).toHaveBeenCalledWith({ amount: '50' })
+      expect(onSuccess).toHaveBeenCalledWith({ amount: '50', txHash: expect.any(String) })
     })
   })
 
