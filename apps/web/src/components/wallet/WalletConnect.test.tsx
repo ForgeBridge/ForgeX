@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { WalletConnect } from './WalletConnect'
 import { useWalletStore } from '../../hooks/useWallet'
@@ -11,6 +11,11 @@ describe('WalletConnect Component', () => {
       isConnected: false,
       isConnecting: false,
       error: null,
+    })
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
     })
   })
 
@@ -31,6 +36,25 @@ describe('WalletConnect Component', () => {
     expect(screen.getByLabelText('Wallet balance')).toHaveTextContent('250.75 XLM')
     expect(screen.getByText('GAAA...AWHF')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument()
+  })
+
+  it('copies full connected address to clipboard and shows checkmark feedback', async () => {
+    const fullAddress = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
+    useWalletStore.setState({
+      address: fullAddress,
+      balance: '100.00',
+      isConnected: true,
+    })
+
+    render(<WalletConnect />)
+
+    const copyBtn = screen.getByRole('button', { name: 'Copy connected address' })
+    fireEvent.click(copyBtn)
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(fullAddress)
+    await waitFor(() => {
+      expect(screen.getByText('✓')).toBeInTheDocument()
+    })
   })
 
   it('renders placeholder when balance is null/loading', () => {
