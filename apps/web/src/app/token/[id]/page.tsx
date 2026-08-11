@@ -7,10 +7,13 @@ import { TradePanel } from '../../../components/trade/TradePanel'
 import { PageLoader } from '../../../components/ui/PageLoader'
 import { ErrorView } from '../../../components/ui/ErrorView'
 import { EmptyState } from '../../../components/ui/EmptyState'
+import { usePolling } from '../../../hooks/usePolling'
+import { useWalletStore } from '../../../hooks/useWallet'
 
 export default function TokenDetailPage() {
   const params = useParams()
   const tokenId = (params?.id as string) || ''
+  const { fetchBalance } = useWalletStore()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -24,22 +27,21 @@ export default function TokenDetailPage() {
   } | null>(null)
 
   const fetchTokenData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
     try {
       if (!tokenId) {
         throw new Error('Token ID is required')
       }
       // Simulated token fetch with fallback
-      await new Promise((resolve) => setTimeout(resolve, 150))
-      setTokenData({
-        name: 'Forge Token',
-        symbol: 'FORGE',
-        price: '0.0001',
-        marketCap: '100,000',
-        reserve: '5,000',
-        description: 'First community forged token on Stellar Soroban with exponential bonding curve.',
-      })
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      setTokenData((prev) => ({
+        name: prev?.name || 'Forge Token',
+        symbol: prev?.symbol || 'FORGE',
+        price: prev?.price || '0.0001',
+        marketCap: prev?.marketCap || '100,000',
+        reserve: prev?.reserve || '5,000',
+        description: prev?.description || 'First community forged token on Stellar Soroban with exponential bonding curve.',
+      }))
+      setError(null)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch token data')
     } finally {
@@ -47,9 +49,13 @@ export default function TokenDetailPage() {
     }
   }, [tokenId])
 
-  useEffect(() => {
-    fetchTokenData()
-  }, [fetchTokenData])
+  // Periodic polling for token price and wallet balance every 5 seconds
+  const { refresh, isPolling } = usePolling(
+    useCallback(async () => {
+      await Promise.all([fetchTokenData(), fetchBalance()])
+    }, [fetchTokenData, fetchBalance]),
+    { intervalMs: 5000, pauseOnHidden: true, immediate: true }
+  )
 
   if (loading) {
     return (
@@ -65,7 +71,7 @@ export default function TokenDetailPage() {
         <ErrorView
           title="Failed to load token details"
           message={error}
-          onRetry={fetchTokenData}
+          onRetry={refresh}
           retryLabel="Retry"
         />
       </div>
@@ -94,6 +100,12 @@ export default function TokenDetailPage() {
             <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-[var(--forgex-primary)]/20 text-[var(--forgex-primary)]">
               ${tokenData.symbol}
             </span>
+            {isPolling && (
+              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20" title="Real-time updates active">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                Live
+              </span>
+            )}
           </div>
           <p className="text-xs text-[var(--forgex-text-muted)] mt-1 font-mono break-all">
             {tokenId}
