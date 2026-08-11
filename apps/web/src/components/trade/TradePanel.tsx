@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { BuyForm } from './BuyForm'
 import { SellForm } from './SellForm'
 import { SlippageTolerance } from './SlippageTolerance'
+import { RiskDisclaimer } from '../common/RiskDisclaimer'
 import { useWalletStore } from '../../hooks/useWallet'
 import { Button } from '../ui/Button'
 
@@ -86,8 +87,9 @@ export function TradePanel({
         />
       )}
 
-      <div className="pt-2 border-t border-[var(--forgex-border)]">
+      <div className="pt-2 border-t border-[var(--forgex-border)] space-y-3">
         <SlippageTolerance />
+        <RiskDisclaimer />
       </div>
     </div>
   )
