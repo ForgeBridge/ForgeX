@@ -19,8 +19,13 @@ export function formatTokenAmount(
   })
 }
 
-export function truncateAddress(address: string): string {
-  return `${address.slice(0, 4)}...${address.slice(-4)}`
+export function truncateAddress(
+  address: string,
+  startChars: number = 4,
+  endChars: number = 4
+): string {
+  if (!address || address.length <= startChars + endChars) return address
+  return `${address.slice(0, startChars)}...${address.slice(-endChars)}`
 }
 
 export function formatTimestamp(timestamp: number): string {

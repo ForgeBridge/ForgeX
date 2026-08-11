@@ -7,25 +7,30 @@ import { TradePanel } from '../../../components/trade/TradePanel'
 import { PageLoader } from '../../../components/ui/PageLoader'
 import { ErrorView } from '../../../components/ui/ErrorView'
 import { EmptyState } from '../../../components/ui/EmptyState'
-import { TokenAvatar } from '../../../components/tokens/TokenAvatar'
+import { TokenDetailHeader } from '../../../components/tokens/TokenDetailHeader'
 import { usePolling } from '../../../hooks/usePolling'
 import { useWalletStore } from '../../../hooks/useWallet'
 
 export default function TokenDetailPage() {
   const params = useParams()
   const tokenId = (params?.id as string) || ''
-  const { fetchBalance } = useWalletStore()
+  const { fetchBalance, network } = useWalletStore()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tokenData, setTokenData] = useState<{
     name: string
     symbol: string
+    tokenId: string
+    curveId?: string
+    creator?: string
+    createdAt?: number
     price: string
     marketCap: string
     reserve: string
     description: string
     imageUri?: string
+    website?: string
   } | null>(null)
 
   const fetchTokenData = useCallback(async () => {
@@ -38,11 +43,16 @@ export default function TokenDetailPage() {
       setTokenData((prev) => ({
         name: prev?.name || 'Forge Token',
         symbol: prev?.symbol || 'FORGE',
+        tokenId,
+        curveId: prev?.curveId || `${tokenId}_curve`,
+        creator: prev?.creator || 'GDJY...CREATOR',
+        createdAt: prev?.createdAt || Math.floor(Date.now() / 1000) - 86400 * 3,
         price: prev?.price || '0.0001',
         marketCap: prev?.marketCap || '100,000',
         reserve: prev?.reserve || '5,000',
         description: prev?.description || 'First community forged token on Stellar Soroban with exponential bonding curve.',
         imageUri: prev?.imageUri,
+        website: 'https://forgex.fi',
       }))
       setError(null)
     } catch (err: unknown) {
@@ -96,51 +106,15 @@ export default function TokenDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[var(--forgex-surface)] p-6 rounded-lg border border-[var(--forgex-border)]">
-        <div className="flex items-center gap-4">
-          <TokenAvatar
-            symbol={tokenData.symbol}
-            imageUri={tokenData.imageUri}
-            size="lg"
-          />
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-bold">{tokenData.name}</h1>
-              <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-[var(--forgex-primary)]/20 text-[var(--forgex-primary)]">
-                ${tokenData.symbol}
-              </span>
-              {isPolling && (
-                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20" title="Real-time updates active">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  Live
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-[var(--forgex-text-muted)] mt-1 font-mono break-all">
-              {tokenId}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-6 text-sm">
-          <div>
-            <div className="text-xs text-[var(--forgex-text-muted)]">Market Cap</div>
-            <div className="font-bold font-mono">{tokenData.marketCap} XLM</div>
-          </div>
-          <div>
-            <div className="text-xs text-[var(--forgex-text-muted)]">Reserve</div>
-            <div className="font-bold font-mono">{tokenData.reserve} XLM</div>
-          </div>
-        </div>
-      </div>
+      <TokenDetailHeader
+        metadata={tokenData}
+        network={network}
+        isLive={isPolling}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <PriceChart symbol={tokenData.symbol} currentPrice={tokenData.price} />
-          <div className="bg-[var(--forgex-surface)] p-5 rounded-lg border border-[var(--forgex-border)]">
-            <h3 className="text-sm font-semibold mb-2">About {tokenData.name}</h3>
-            <p className="text-sm text-[var(--forgex-text-muted)]">{tokenData.description}</p>
-          </div>
         </div>
 
         <div className="lg:col-span-1">
