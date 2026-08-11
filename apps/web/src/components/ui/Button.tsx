@@ -1,7 +1,7 @@
 'use client'
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost'
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'sm' | 'md' | 'lg'
 }
 
@@ -17,6 +17,7 @@ export function Button({
     primary: 'bg-[var(--forgex-primary)] text-white',
     secondary: 'bg-[var(--forgex-surface)] border border-[var(--forgex-border)] text-[var(--forgex-text)]',
     ghost: 'text-[var(--forgex-text-muted)] hover:text-[var(--forgex-text)]',
+    danger: 'bg-red-600 text-white hover:bg-red-700',
   }
   const sizes = {
     sm: 'px-3 py-1.5 text-xs',

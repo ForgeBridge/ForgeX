@@ -8,6 +8,7 @@ import { useSoroban } from '../../hooks/useSoroban'
 import { useTradeStore } from '../../hooks/useBondingCurve'
 import { useToastStore } from '../../hooks/useToast'
 import { parseTokenAmount } from '@forgex/sdk'
+import { sanitizeNumericInput, validateTradeAmount } from '../../lib/inputGuards'
 import { QuotePreview } from './QuotePreview'
 import { TransactionConfirmationModal, OrderDetails } from './TransactionConfirmationModal'
 
@@ -25,7 +26,7 @@ export function SellForm({
   tokenSymbol = 'TOKEN',
   tokenDecimals = 7,
   tokenPrice = '0.0001',
-  userBalance = '0',
+  userBalance = '1000',
   onSuccess,
 }: SellFormProps) {
   const [amount, setAmount] = useState('')
@@ -57,6 +58,12 @@ export function SellForm({
       }
     : null
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitized = sanitizeNumericInput(e.target.value, tokenDecimals)
+    setAmount(sanitized)
+    if (error) setError(null)
+  }
+
   const handleOpenConfirm = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -67,9 +74,14 @@ export function SellForm({
       return
     }
 
-    const trimmed = amount.trim()
-    if (!trimmed || parseFloat(trimmed) <= 0) {
-      setError('Please enter a valid amount greater than 0')
+    const validation = validateTradeAmount(amount, {
+      maxAmount: userBalance,
+      maxDecimals: tokenDecimals,
+      tokenSymbol,
+    })
+
+    if (!validation.isValid) {
+      setError(validation.error || 'Invalid amount')
       return
     }
 
@@ -104,7 +116,7 @@ export function SellForm({
       const txHash = 'simulated_sell_tx'
       updateToast(pendingToastId, {
         type: 'success',
-        title: 'Sale Confirmed',
+        title: 'Trade Confirmed',
         message: `Successfully sold ${trimmed} ${tokenSymbol}!`,
         txHash,
         explorerUrl: `https://stellar.expert/explorer/${network}/contract/${curveContractId}`,
@@ -130,12 +142,6 @@ export function SellForm({
     }
   }
 
-  const handleMaxClick = () => {
-    if (userBalance && parseFloat(userBalance) > 0) {
-      setAmount(userBalance)
-    }
-  }
-
   return (
     <>
       <form onSubmit={handleOpenConfirm} className="space-y-4">
@@ -151,32 +157,27 @@ export function SellForm({
           </div>
         )}
 
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-xs text-[var(--forgex-text-muted)]">
-            <span>Your Balance:</span>
-            <button
-              type="button"
-              onClick={handleMaxClick}
-              className="text-[var(--forgex-primary)] hover:underline font-mono"
-            >
-              {userBalance} {tokenSymbol} (Max)
-            </button>
-          </div>
-          <Input
-            label={`Amount (${tokenSymbol})`}
-            type="number"
-            step="any"
-            min="0"
-            placeholder="0.0"
-            value={amount}
-            onChange={(e) => {
-              setAmount(e.target.value)
-              if (error) setError(null)
-            }}
-            disabled={isSubmitting}
-            required
-          />
+        <div className="flex justify-between items-center text-xs text-[var(--forgex-text-muted)]">
+          <label htmlFor="sell-amount">Amount ({tokenSymbol})</label>
+          <button
+            type="button"
+            className="text-[var(--forgex-primary)] hover:underline"
+            onClick={() => setAmount(userBalance)}
+          >
+            Balance: {userBalance} {tokenSymbol} (Max)
+          </button>
         </div>
+
+        <Input
+          id="sell-amount"
+          type="text"
+          inputMode="decimal"
+          placeholder="0.0"
+          value={amount}
+          onChange={handleAmountChange}
+          disabled={isSubmitting}
+          required
+        />
 
         <div className="text-xs text-[var(--forgex-text-muted)] flex justify-between">
           <span>Price per token:</span>
@@ -192,13 +193,13 @@ export function SellForm({
         />
 
         {!isConnected ? (
-          <Button type="button" variant="secondary" className="w-full" onClick={connect}>
+          <Button type="button" className="w-full" onClick={connect}>
             Connect Wallet to Sell
           </Button>
         ) : (
           <Button
             type="submit"
-            variant="secondary"
+            variant="danger"
             className="w-full"
             disabled={isSubmitting || !amount || parseFloat(amount) <= 0}
           >
