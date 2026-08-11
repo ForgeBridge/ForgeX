@@ -8,6 +8,7 @@ import { useSoroban } from '../../hooks/useSoroban'
 import { useTradeStore } from '../../hooks/useBondingCurve'
 import { parseTokenAmount } from '@forgex/sdk'
 import { QuotePreview } from './QuotePreview'
+import { TransactionConfirmationModal, OrderDetails } from './TransactionConfirmationModal'
 
 export interface BuyFormProps {
   curveContractId?: string
@@ -26,6 +27,7 @@ export function BuyForm({
 }: BuyFormProps) {
   const [amount, setAmount] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -33,13 +35,31 @@ export function BuyForm({
   const soroban = useSoroban()
   const slippage = useTradeStore((state) => state.slippage)
 
-  const handleBuy = async (e: React.FormEvent) => {
+  const numAmount = parseFloat(amount) || 0
+  const unitPrice = parseFloat(tokenPrice) || 0.0001
+  const grossCost = numAmount * unitPrice
+  const maxCost = grossCost * (1 + slippage / 100)
+
+  const orderDetails: OrderDetails | null = address
+    ? {
+        type: 'buy',
+        tokenSymbol,
+        tokenAmount: amount,
+        estimatedCostOrPayout: grossCost.toFixed(4),
+        minReceivedOrMaxCost: maxCost.toFixed(4),
+        fee: (grossCost * 0.01 + 0.01).toFixed(4),
+        slippagePercent: slippage,
+        accountAddress: address,
+      }
+    : null
+
+  const handleOpenConfirm = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setSuccessMessage(null)
 
     if (!isConnected || !address) {
-      await connect()
+      connect()
       return
     }
 
@@ -49,10 +69,15 @@ export function BuyForm({
       return
     }
 
+    setShowConfirmModal(true)
+  }
+
+  const handleExecuteBuy = async () => {
+    if (!address) return
     setIsSubmitting(true)
 
     try {
-      // Safe base unit conversion for token amount
+      const trimmed = amount.trim()
       const amountInBaseUnits = parseTokenAmount(trimmed, tokenDecimals).toString()
 
       try {
@@ -68,70 +93,82 @@ export function BuyForm({
 
       setSuccessMessage(`Successfully purchased ${trimmed} ${tokenSymbol}!`)
       setAmount('')
+      setShowConfirmModal(false)
       onSuccess?.({ amount: trimmed })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to execute buy transaction'
       setError(msg)
+      setShowConfirmModal(false)
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleBuy} className="space-y-4">
-      {error && (
-        <div role="alert" className="bg-red-500/10 border border-red-500/30 text-red-400 p-2.5 rounded text-xs">
-          {error}
+    <>
+      <form onSubmit={handleOpenConfirm} className="space-y-4">
+        {error && (
+          <div role="alert" className="bg-red-500/10 border border-red-500/30 text-red-400 p-2.5 rounded text-xs">
+            {error}
+          </div>
+        )}
+
+        {successMessage && (
+          <div role="status" className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-2.5 rounded text-xs">
+            {successMessage}
+          </div>
+        )}
+
+        <Input
+          label={`Amount (${tokenSymbol})`}
+          type="number"
+          step="any"
+          min="0"
+          placeholder="0.0"
+          value={amount}
+          onChange={(e) => {
+            setAmount(e.target.value)
+            if (error) setError(null)
+          }}
+          disabled={isSubmitting}
+          required
+        />
+
+        <div className="text-xs text-[var(--forgex-text-muted)] flex justify-between">
+          <span>Price per token:</span>
+          <span className="font-mono text-[var(--forgex-text)]">{tokenPrice} XLM</span>
         </div>
-      )}
 
-      {successMessage && (
-        <div role="status" className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-2.5 rounded text-xs">
-          {successMessage}
-        </div>
-      )}
+        <QuotePreview
+          type="buy"
+          tokenAmount={amount}
+          tokenPrice={tokenPrice}
+          tokenSymbol={tokenSymbol}
+          slippagePercent={slippage}
+        />
 
-      <Input
-        label={`Amount (${tokenSymbol})`}
-        type="number"
-        step="any"
-        min="0"
-        placeholder="0.0"
-        value={amount}
-        onChange={(e) => {
-          setAmount(e.target.value)
-          if (error) setError(null)
-        }}
-        disabled={isSubmitting}
-        required
+        {!isConnected ? (
+          <Button type="button" className="w-full" onClick={connect}>
+            Connect Wallet to Buy
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting || !amount || parseFloat(amount) <= 0}
+          >
+            Buy {tokenSymbol}
+          </Button>
+        )}
+      </form>
+
+      <TransactionConfirmationModal
+        isOpen={showConfirmModal}
+        orderDetails={orderDetails}
+        isSubmitting={isSubmitting}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleExecuteBuy}
       />
-
-      <div className="text-xs text-[var(--forgex-text-muted)] flex justify-between">
-        <span>Price per token:</span>
-        <span className="font-mono text-[var(--forgex-text)]">{tokenPrice} XLM</span>
-      </div>
-
-      <QuotePreview
-        type="buy"
-        tokenAmount={amount}
-        tokenPrice={tokenPrice}
-        tokenSymbol={tokenSymbol}
-        slippagePercent={slippage}
-      />
-
-      {!isConnected ? (
-        <Button type="button" className="w-full" onClick={connect}>
-          Connect Wallet to Buy
-        </Button>
-      ) : (
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isSubmitting || !amount || parseFloat(amount) <= 0}
-        >
-          {isSubmitting ? 'Submitting Buy Order…' : `Buy ${tokenSymbol}`}
-        </Button>
-      )}
-    </form>
+    </>
   )
 }

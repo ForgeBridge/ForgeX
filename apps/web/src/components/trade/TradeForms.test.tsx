@@ -54,7 +54,7 @@ describe('Trade Forms (BuyForm, SellForm, TradePanel)', () => {
       expect(screen.getByRole('button', { name: /Buy FORGE/i })).toBeInTheDocument()
     })
 
-    it('submits buy transaction and triggers onSuccess', async () => {
+    it('opens confirmation modal and submits buy transaction', async () => {
       const onSuccess = vi.fn()
       render(<BuyForm tokenSymbol="FORGE" onSuccess={onSuccess} />)
 
@@ -63,6 +63,11 @@ describe('Trade Forms (BuyForm, SellForm, TradePanel)', () => {
 
       const buyBtn = screen.getByRole('button', { name: /Buy FORGE/i })
       fireEvent.click(buyBtn)
+
+      // Opens confirmation modal
+      const confirmBtn = screen.getByRole('button', { name: 'Confirm & Sign' })
+      expect(confirmBtn).toBeInTheDocument()
+      fireEvent.click(confirmBtn)
 
       await waitFor(() => {
         expect(screen.getByText(/Successfully purchased 100 FORGE!/i)).toBeInTheDocument()
@@ -81,7 +86,7 @@ describe('Trade Forms (BuyForm, SellForm, TradePanel)', () => {
       expect(amountInput.value).toBe('500')
     })
 
-    it('submits sell transaction and triggers onSuccess', async () => {
+    it('opens confirmation modal and submits sell transaction', async () => {
       const onSuccess = vi.fn()
       render(<SellForm tokenSymbol="FORGE" onSuccess={onSuccess} />)
 
@@ -90,6 +95,11 @@ describe('Trade Forms (BuyForm, SellForm, TradePanel)', () => {
 
       const sellBtn = screen.getByRole('button', { name: /Sell FORGE/i })
       fireEvent.click(sellBtn)
+
+      // Opens confirmation modal
+      const confirmBtn = screen.getByRole('button', { name: 'Confirm & Sign' })
+      expect(confirmBtn).toBeInTheDocument()
+      fireEvent.click(confirmBtn)
 
       await waitFor(() => {
         expect(screen.getByText(/Successfully sold 50 FORGE!/i)).toBeInTheDocument()
