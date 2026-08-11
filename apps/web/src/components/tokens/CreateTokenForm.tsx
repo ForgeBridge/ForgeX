@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { useWalletStore } from '../../hooks/useWallet'
 import { useSoroban } from '../../hooks/useSoroban'
-import { FACTORY_CONTRACT_ID, CURVE_DEFAULTS, STROOPS_PER_XLM } from '../../lib/constants'
+import { FACTORY_CONTRACT_ID, CURVE_DEFAULTS } from '../../lib/constants'
 
 export interface CreateTokenFormProps {
   onSuccess?: (result: { tokenId: string; curveId: string }) => void
@@ -24,12 +24,93 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
   const [description, setDescription] = useState('')
   const [imageUri, setImageUri] = useState('')
 
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [txError, setTxError] = useState<string | null>(null)
   const [createdResult, setCreatedResult] = useState<{ tokenId: string; curveId: string } | null>(null)
 
+  const markTouched = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }))
+  }
+
+  // Field validation rules
+  const errors = useMemo(() => {
+    const errs: Record<string, string> = {}
+
+    // Name validation: 1-60 characters
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      errs.name = 'Token name is required'
+    } else if (trimmedName.length > 60) {
+      errs.name = 'Token name must not exceed 60 characters'
+    }
+
+    // Symbol validation: 1-12 characters, uppercase alphanumeric only
+    const trimmedSymbol = symbol.trim().toUpperCase()
+    if (!trimmedSymbol) {
+      errs.symbol = 'Token symbol is required'
+    } else if (trimmedSymbol.length > 12) {
+      errs.symbol = 'Token symbol must not exceed 12 characters'
+    } else if (!/^[A-Z0-9]+$/.test(trimmedSymbol)) {
+      errs.symbol = 'Symbol must contain only alphanumeric characters (A-Z, 0-9)'
+    }
+
+    // Max Supply validation: positive integer
+    const trimmedSupply = maxSupply.trim()
+    if (!trimmedSupply) {
+      errs.maxSupply = 'Max supply is required'
+    } else {
+      try {
+        const supplyVal = BigInt(trimmedSupply)
+        if (supplyVal <= 0n) {
+          errs.maxSupply = 'Max supply must be greater than 0'
+        }
+      } catch {
+        errs.maxSupply = 'Max supply must be a valid positive integer'
+      }
+    }
+
+    // Decimals validation: integer 0-18
+    const decVal = parseInt(decimals, 10)
+    if (isNaN(decVal) || decVal < 0 || decVal > 18) {
+      errs.decimals = 'Decimals must be an integer between 0 and 18'
+    }
+
+    // Image URI validation
+    const trimmedUri = imageUri.trim()
+    if (trimmedUri) {
+      const isValidUri =
+        trimmedUri.startsWith('https://') ||
+        trimmedUri.startsWith('http://') ||
+        trimmedUri.startsWith('ipfs://')
+      if (!isValidUri) {
+        errs.imageUri = 'Image URI must start with https:// or ipfs://'
+      }
+    }
+
+    // Description validation: max 500 characters
+    if (description.length > 500) {
+      errs.description = 'Description must not exceed 500 characters'
+    }
+
+    return errs
+  }, [name, symbol, maxSupply, decimals, imageUri, description])
+
+  const isValid = Object.keys(errors).length === 0
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setTouched({
+      name: true,
+      symbol: true,
+      maxSupply: true,
+      decimals: true,
+      imageUri: true,
+      description: true,
+    })
+
+    if (!isValid) return
+
     if (!isConnected || !address) {
       await connect()
       return
@@ -57,7 +138,6 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
 
       const freighter = await import('@stellar/freighter-api')
 
-      // Call createToken via ForgeXClient
       const result = await soroban.createToken(factoryId, params, {
         sourceAccount: address,
         signTransaction: async (xdr: string) => {
@@ -68,7 +148,6 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
           return signResult.signedTxXdr
         },
       }).catch((err) => {
-        // Fallback for mocked/simulated environment when Soroban RPC is simulated
         const fallbackTokenId = `C${Array.from({ length: 55 }, () => Math.floor(Math.random() * 36).toString(36).toUpperCase()).join('')}`
         const fallbackCurveId = `C${Array.from({ length: 55 }, () => Math.floor(Math.random() * 36).toString(36).toUpperCase()).join('')}`
         if (err.message?.includes('not yet wired') || !FACTORY_CONTRACT_ID) {
@@ -116,7 +195,7 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[var(--forgex-surface)] rounded-lg border border-[var(--forgex-border)] p-6 space-y-4">
+    <form onSubmit={handleSubmit} noValidate className="bg-[var(--forgex-surface)] rounded-lg border border-[var(--forgex-border)] p-6 space-y-4">
       {txError && (
         <div role="alert" className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded text-sm">
           {txError}
@@ -129,6 +208,8 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
           placeholder="e.g. Stellar Doge"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onBlur={() => markTouched('name')}
+          error={touched.name ? errors.name : undefined}
           required
         />
         <Input
@@ -136,6 +217,8 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
           placeholder="e.g. DOGE"
           value={symbol}
           onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+          onBlur={() => markTouched('symbol')}
+          error={touched.symbol ? errors.symbol : undefined}
           required
         />
       </div>
@@ -147,6 +230,8 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
           placeholder="1000000000"
           value={maxSupply}
           onChange={(e) => setMaxSupply(e.target.value)}
+          onBlur={() => markTouched('maxSupply')}
+          error={touched.maxSupply ? errors.maxSupply : undefined}
           required
         />
         <Input
@@ -155,6 +240,8 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
           placeholder="7"
           value={decimals}
           onChange={(e) => setDecimals(e.target.value)}
+          onBlur={() => markTouched('decimals')}
+          error={touched.decimals ? errors.decimals : undefined}
         />
       </div>
 
@@ -163,19 +250,33 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
         placeholder="https://... or ipfs://..."
         value={imageUri}
         onChange={(e) => setImageUri(e.target.value)}
+        onBlur={() => markTouched('imageUri')}
+        error={touched.imageUri ? errors.imageUri : undefined}
       />
 
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-[var(--forgex-text-muted)]">
-          Description
-        </label>
+        <div className="flex justify-between items-center">
+          <label htmlFor="token-description" className="block text-sm font-medium text-[var(--forgex-text-muted)]">
+            Description
+          </label>
+          <span className="text-xs text-[var(--forgex-text-muted)]">
+            {description.length}/500
+          </span>
+        </div>
         <textarea
+          id="token-description"
           rows={3}
-          className="w-full px-3 py-2 rounded-lg bg-[var(--forgex-bg)] border border-[var(--forgex-border)] text-[var(--forgex-text)] placeholder-[var(--forgex-text-muted)] focus:outline-none focus:border-[var(--forgex-primary)] resize-none text-sm"
+          className={`w-full px-3 py-2 rounded-lg bg-[var(--forgex-bg)] border ${
+            touched.description && errors.description ? 'border-red-500' : 'border-[var(--forgex-border)]'
+          } text-[var(--forgex-text)] placeholder-[var(--forgex-text-muted)] focus:outline-none focus:border-[var(--forgex-primary)] resize-none text-sm`}
           placeholder="Tell traders about your token..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          onBlur={() => markTouched('description')}
         />
+        {touched.description && errors.description && (
+          <p className="text-xs text-red-500">{errors.description}</p>
+        )}
       </div>
 
       <div className="pt-2">
@@ -187,7 +288,7 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
           <Button
             type="submit"
             className="w-full"
-            disabled={isSubmitting || !name || !symbol}
+            disabled={isSubmitting || !isValid}
           >
             {isSubmitting ? 'Forging Token on Soroban…' : 'Create Token'}
           </Button>
