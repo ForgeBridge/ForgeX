@@ -15,6 +15,38 @@ describe('Trade Forms (BuyForm, SellForm, TradePanel)', () => {
     })
   })
 
+  describe('Wallet Gating', () => {
+    it('renders Connect Wallet CTA when wallet is disconnected in BuyForm', () => {
+      const connectMock = vi.fn()
+      useWalletStore.setState({ isConnected: false, address: null, connect: connectMock })
+
+      render(<BuyForm tokenSymbol="FORGE" />)
+      const connectBtn = screen.getByRole('button', { name: /Connect Wallet to Buy/i })
+      expect(connectBtn).toBeInTheDocument()
+
+      fireEvent.click(connectBtn)
+      expect(connectMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('renders Connect Wallet CTA when wallet is disconnected in SellForm', () => {
+      const connectMock = vi.fn()
+      useWalletStore.setState({ isConnected: false, address: null, connect: connectMock })
+
+      render(<SellForm tokenSymbol="FORGE" />)
+      const connectBtn = screen.getByRole('button', { name: /Connect Wallet to Sell/i })
+      expect(connectBtn).toBeInTheDocument()
+
+      fireEvent.click(connectBtn)
+      expect(connectMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('renders Connect prompt in TradePanel when wallet is disconnected', () => {
+      useWalletStore.setState({ isConnected: false, address: null })
+      render(<TradePanel tokenSymbol="FORGE" />)
+      expect(screen.getByText(/Connect Freighter wallet to trade \$FORGE/i)).toBeInTheDocument()
+    })
+  })
+
   describe('BuyForm', () => {
     it('renders amount input and buy button', () => {
       render(<BuyForm tokenSymbol="FORGE" tokenPrice="0.005" />)

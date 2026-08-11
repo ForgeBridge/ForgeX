@@ -23,6 +23,18 @@ describe('CreateTokenForm Validation', () => {
     })
   })
 
+  it('renders Connect Wallet button when wallet is disconnected', () => {
+    const connectMock = vi.fn()
+    useWalletStore.setState({ isConnected: false, address: null, connect: connectMock })
+
+    render(<CreateTokenForm />)
+    const connectBtn = screen.getByRole('button', { name: /Connect Wallet to Create Token/i })
+    expect(connectBtn).toBeInTheDocument()
+
+    fireEvent.click(connectBtn)
+    expect(connectMock).toHaveBeenCalledTimes(1)
+  })
+
   it('renders required input fields and submit button is initially disabled for empty required fields', () => {
     render(<CreateTokenForm />)
     const submitBtn = screen.getByRole('button', { name: /Create Token/i })
@@ -73,10 +85,9 @@ describe('CreateTokenForm Validation', () => {
     const onSuccess = vi.fn()
     render(<CreateTokenForm onSuccess={onSuccess} />)
 
-    fireEvent.change(screen.getByLabelText(/Token Name/i), { target: { value: 'Forge Coin' } })
+    fireEvent.change(screen.getByLabelText(/Token Name/i), { target: { value: 'Forge Token' } })
     fireEvent.change(screen.getByLabelText(/Token Symbol/i), { target: { value: 'FORGE' } })
     fireEvent.change(screen.getByLabelText(/Max Supply/i), { target: { value: '1000000000' } })
-    fireEvent.change(screen.getByLabelText(/Decimals/i), { target: { value: '7' } })
 
     const submitBtn = screen.getByRole('button', { name: /Create Token/i })
     expect(submitBtn).not.toBeDisabled()
