@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { BuyForm } from './BuyForm'
 import { SellForm } from './SellForm'
 import { SlippageTolerance } from './SlippageTolerance'
+import { useWalletStore } from '../../hooks/useWallet'
+import { Button } from '../ui/Button'
 
 export interface TradePanelProps {
   curveContractId?: string
@@ -23,10 +25,24 @@ export function TradePanel({
   onTradeSuccess,
 }: TradePanelProps) {
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy')
+  const { isConnected, connect } = useWalletStore()
 
   return (
-    <div className="bg-[var(--forgex-surface)] rounded-lg border border-[var(--forgex-border)] p-4 shadow-sm">
-      <div className="flex border-b border-[var(--forgex-border)] mb-4">
+    <div className="bg-[var(--forgex-surface)] rounded-xl border border-[var(--forgex-border)] p-5 shadow-sm space-y-4">
+      {!isConnected && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-300 flex items-center justify-between gap-2">
+          <span>Connect Freighter wallet to trade ${tokenSymbol}</span>
+          <button
+            type="button"
+            onClick={connect}
+            className="font-semibold underline hover:text-amber-200 shrink-0"
+          >
+            Connect
+          </button>
+        </div>
+      )}
+
+      <div className="flex border-b border-[var(--forgex-border)]">
         <button
           type="button"
           onClick={() => setActiveTab('buy')}
@@ -70,7 +86,7 @@ export function TradePanel({
         />
       )}
 
-      <div className="pt-3 mt-3 border-t border-[var(--forgex-border)]">
+      <div className="pt-2 border-t border-[var(--forgex-border)]">
         <SlippageTolerance />
       </div>
     </div>
