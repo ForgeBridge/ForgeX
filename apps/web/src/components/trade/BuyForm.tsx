@@ -6,6 +6,7 @@ import { Input } from '../ui/Input'
 import { useWalletStore } from '../../hooks/useWallet'
 import { useSoroban } from '../../hooks/useSoroban'
 import { parseTokenAmount } from '@forgex/sdk'
+import { QuotePreview } from './QuotePreview'
 
 export interface BuyFormProps {
   curveContractId?: string
@@ -107,6 +108,13 @@ export function BuyForm({
         <span>Price per token:</span>
         <span className="font-mono text-[var(--forgex-text)]">{tokenPrice} XLM</span>
       </div>
+
+      <QuotePreview
+        type="buy"
+        tokenAmount={amount}
+        tokenPrice={tokenPrice}
+        tokenSymbol={tokenSymbol}
+      />
 
       {!isConnected ? (
         <Button type="button" className="w-full" onClick={connect}>
