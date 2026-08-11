@@ -16,7 +16,7 @@ vi.mock('@stellar/freighter-api', () => ({
 describe('CreateTokenForm Validation', () => {
   beforeEach(() => {
     useWalletStore.setState({
-      address: 'GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+      address: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
       isConnected: true,
       isConnecting: false,
       error: null,
