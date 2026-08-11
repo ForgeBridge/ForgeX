@@ -6,6 +6,7 @@ import { useTokenStore, TokenItem } from '../../hooks/useToken'
 import { PageLoader } from '../ui/PageLoader'
 import { ErrorView } from '../ui/ErrorView'
 import { EmptyState } from '../ui/EmptyState'
+import { Spinner } from '../ui/Spinner'
 
 export type SortOption = 'marketCap' | 'newest' | 'price'
 
@@ -13,6 +14,7 @@ export interface TokenFeedProps {
   tokens?: TokenItem[]
   loading?: boolean
   error?: string | null
+  pageSize?: number
   onRetry?: () => void
 }
 
@@ -20,6 +22,7 @@ export function TokenFeed({
   tokens: customTokens,
   loading: customLoading,
   error: customError,
+  pageSize = 6,
   onRetry: customRetry,
 }: TokenFeedProps) {
   const { tokens: storeTokens, loading: storeLoading, error: storeError, fetchTokens, retry } = useTokenStore()
@@ -29,10 +32,17 @@ export function TokenFeed({
 
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('marketCap')
+  const [page, setPage] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     fetchTokens()
   }, [fetchTokens])
+
+  // Reset page when search or sort changes
+  useEffect(() => {
+    setPage(1)
+  }, [searchQuery, sortBy])
 
   const sourceTokens = customTokens !== undefined ? customTokens : storeTokens
 
@@ -69,6 +79,21 @@ export function TokenFeed({
 
     return result
   }, [sourceTokens, searchQuery, sortBy])
+
+  // Pagination slice
+  const paginatedTokens = useMemo(() => {
+    return filteredTokens.slice(0, page * pageSize)
+  }, [filteredTokens, page, pageSize])
+
+  const hasMore = paginatedTokens.length < filteredTokens.length
+
+  const handleLoadMore = () => {
+    setLoadingMore(true)
+    setTimeout(() => {
+      setPage((prev) => prev + 1)
+      setLoadingMore(false)
+    }, 100)
+  }
 
   if (isLoading) {
     return <PageLoader message="Loading tokens from Soroban…" />
@@ -172,10 +197,44 @@ export function TokenFeed({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy={isLoading}>
-          {filteredTokens.map((token) => (
-            <TokenCard key={token.symbol} {...token} />
-          ))}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy={isLoading}>
+            {paginatedTokens.map((token) => (
+              <TokenCard key={token.symbol} {...token} />
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[var(--forgex-border)]/50 text-xs text-[var(--forgex-text-muted)]">
+            <span>
+              Showing {paginatedTokens.length} of {filteredTokens.length} tokens
+            </span>
+
+            {hasMore && (
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                aria-label="Load more tokens"
+                className="px-5 py-2.5 rounded-xl bg-[var(--forgex-surface)] border border-[var(--forgex-border)] text-xs font-semibold text-[var(--forgex-text)] hover:border-[var(--forgex-primary)] hover:text-[var(--forgex-primary)] transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                {loadingMore ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span>Loading…</span>
+                  </>
+                ) : (
+                  <span>Load More Tokens</span>
+                )}
+              </button>
+            )}
+
+            {!hasMore && filteredTokens.length > pageSize && (
+              <span className="text-[var(--forgex-text-muted)] italic">
+                All tokens loaded
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { TokenFeed } from './TokenFeed'
 import { useTokenStore, TokenItem } from '../../hooks/useToken'
@@ -30,7 +30,7 @@ const mockTokens: TokenItem[] = [
   },
 ]
 
-describe('TokenFeed Search & Filtering', () => {
+describe('TokenFeed Search, Filtering & Pagination', () => {
   beforeEach(() => {
     useTokenStore.setState({
       tokens: mockTokens,
@@ -76,11 +76,19 @@ describe('TokenFeed Search & Filtering', () => {
     expect(screen.getByText('Gamma Memecoin')).toBeInTheDocument()
   })
 
-  it('sorts tokens by market cap or newest', () => {
-    render(<TokenFeed />)
-    const sortSelect = screen.getByRole('combobox', { name: 'Sort tokens' })
+  it('supports pagination and loads more tokens on button click', async () => {
+    // Render with pageSize = 2
+    render(<TokenFeed pageSize={2} />)
 
-    fireEvent.change(sortSelect, { target: { value: 'newest' } })
-    expect(useTokenStore.getState().tokens).toHaveLength(3)
+    expect(screen.getByText(/showing 2 of 3 tokens/i)).toBeInTheDocument()
+    const loadMoreBtn = screen.getByRole('button', { name: 'Load more tokens' })
+    expect(loadMoreBtn).toBeInTheDocument()
+
+    fireEvent.click(loadMoreBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText(/showing 3 of 3 tokens/i)).toBeInTheDocument()
+      expect(screen.getByText(/all tokens loaded/i)).toBeInTheDocument()
+    })
   })
 })
