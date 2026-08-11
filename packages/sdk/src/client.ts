@@ -1,28 +1,31 @@
 import {
-  AssembledTransaction,
-  ContractClient,
-  networks as sorobanNetworks,
-} from '@stellar/soroban-client'
-import {
-  Keypair,
-  TransactionBuilder,
   Networks,
-  Operation,
-  BASE_FEE,
   xdr,
 } from '@stellar/stellar-sdk'
 
-export interface ForgeXClientConfig {
-  network: 'testnet' | 'mainnet'
+export type ForgeXNetwork = 'testnet' | 'mainnet'
+
+export interface SorobanClientConfig {
+  network: ForgeXNetwork
   rpcUrl: string
   networkPassphrase?: string
 }
 
-export class SorobanClient {
-  private rpcUrl: string
-  private networkPassphrase: string
+export interface InvokeOptions {
+  signTransaction: (xdrTx: string) => Promise<string>
+  sourceAccount: string
+}
 
-  constructor(config: ForgeXClientConfig) {
+export interface ReadOptions {
+  /** Optional abort signal for cancellation */
+  signal?: AbortSignal
+}
+
+export class SorobanClient {
+  readonly rpcUrl: string
+  readonly networkPassphrase: string
+
+  constructor(config: SorobanClientConfig) {
     this.rpcUrl = config.rpcUrl
     this.networkPassphrase =
       config.networkPassphrase ??
@@ -35,24 +38,17 @@ export class SorobanClient {
     contractId: string,
     method: string,
     args: xdr.ScVal[],
+    _options?: InvokeOptions,
   ): Promise<xdr.ScVal | xdr.ScVal[]> {
-    const { Server } = await import('@stellar/stellar-sdk/rpc')
-    const server = new Server(this.rpcUrl, { allowHttp: true })
-
-    const account = await server.getAccount(
-      'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+    // This is a placeholder implementation for the SDK.
+    // Real invocation requires Soroban RPC interaction.
+    throw new Error(
+      `invokeContract not yet wired: ${contractId}.${method} with ${args.length} args`,
     )
+  }
 
-    const contract = new ContractClient({
-      contractId,
-      networkPassphrase: this.networkPassphrase,
-      rpcUrl: this.rpcUrl,
-    })
-
-    const tx = await contract.from(method, ...args)
-    const result = await tx.signAndSend({
-      signTransaction: async (txn: string) => txn,
-    })
-    return result
+  async getLatestLedger(): Promise<number> {
+    // Placeholder — requires Soroban RPC
+    throw new Error('getLatestLedger not yet wired')
   }
 }

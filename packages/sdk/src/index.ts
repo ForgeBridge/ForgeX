@@ -6,7 +6,8 @@ export type { TokenInfo, CreateTokenParams } from './types/token'
 export type { CurveParams, CurveInfo, CurveState } from './types/curve'
 export type { ForgeXEvent, BuyEvent, SellEvent, TokenCreatedEvent } from './types/events'
 
-export { ForgeXClient } from './client'
+export { ForgeXClient, SorobanClient } from './ForgeXClient'
+export type { ForgeXClientConfig, ForgeXNetwork, InvokeOptions, ReadOptions } from './ForgeXClient'
 
 export {
   formatXLM,

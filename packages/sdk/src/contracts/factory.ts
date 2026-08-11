@@ -1,7 +1,6 @@
 import { Address, nativeToScVal, scValToNative, xdr } from '@stellar/stellar-sdk'
-import { SorobanClient } from '../client'
-import { CreateTokenParams, TokenInfo } from '../types/token'
-import { CurveParams } from '../types/curve'
+import type { SorobanClient } from '../client'
+import type { CreateTokenParams, TokenInfo } from '../types/token'
 
 export class FactoryClient {
   constructor(
@@ -10,37 +9,35 @@ export class FactoryClient {
   ) {}
 
   async initialize(admin: string): Promise<string> {
-    return this.client.invokeContract(this.contractId, 'initialize', [
+    const result = await this.client.invokeContract(this.contractId, 'initialize', [
       new Address(admin).toScVal(),
     ])
+    return String(scValToNative(result as xdr.ScVal))
   }
 
   async createToken(params: CreateTokenParams): Promise<{ token_id: string; curve_id: string }> {
     const result = await this.client.invokeContract(this.contractId, 'create_token', [
       this.encodeCreateTokenParams(params),
     ])
-    const vals = result as xdr.ScVal[]
-    return {
-      token_id: scValToNative(vals[0]) as string,
-      curve_id: scValToNative(vals[1]) as string,
-    }
+    const native = scValToNative(result as xdr.ScVal) as { token_id: string; curve_id: string }
+    return native
   }
 
   async getAllTokens(): Promise<TokenInfo[]> {
     const result = await this.client.invokeContract(this.contractId, 'get_all_tokens', [])
-    return scValToNative(result) as TokenInfo[]
+    return scValToNative(result as xdr.ScVal) as TokenInfo[]
   }
 
   async getToken(tokenId: string): Promise<TokenInfo> {
     const result = await this.client.invokeContract(this.contractId, 'get_token', [
       new Address(tokenId).toScVal(),
     ])
-    return scValToNative(result) as TokenInfo
+    return scValToNative(result as xdr.ScVal) as TokenInfo
   }
 
   async getTokenCount(): Promise<number> {
     const result = await this.client.invokeContract(this.contractId, 'get_token_count', [])
-    return Number(scValToNative(result))
+    return Number(scValToNative(result as xdr.ScVal))
   }
 
   private encodeCreateTokenParams(params: CreateTokenParams): xdr.ScVal {
@@ -58,7 +55,7 @@ export class FactoryClient {
           reserve_target: BigInt(params.curve_params.reserve_target),
         },
       },
-      true,
+      { type: 'struct' } as unknown as { type: 'i128' },
     )
   }
 }

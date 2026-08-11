@@ -1,6 +1,5 @@
 import { Address, nativeToScVal, scValToNative } from '@stellar/stellar-sdk'
-import { SorobanClient } from '../client'
-import { TokenInfo } from '../types/token'
+import type { SorobanClient } from '../client'
 
 export class TokenClient {
   constructor(
@@ -15,42 +14,46 @@ export class TokenClient {
     decimals: number,
     maxSupply: string,
   ): Promise<string> {
-    return this.client.invokeContract(this.contractId, 'initialize', [
+    const result = await this.client.invokeContract(this.contractId, 'initialize', [
       new Address(admin).toScVal(),
-      nativeToScVal(name),
-      nativeToScVal(symbol),
-      nativeToScVal(decimals),
-      nativeToScVal(BigInt(maxSupply), true),
+      nativeToScVal(name, { type: 'string' }),
+      nativeToScVal(symbol, { type: 'string' }),
+      nativeToScVal(decimals, { type: 'u32' }),
+      nativeToScVal(BigInt(maxSupply), { type: 'i128' }),
     ])
+    return String(scValToNative(result as import('@stellar/stellar-sdk').xdr.ScVal))
   }
 
   async mint(to: string, amount: string): Promise<string> {
-    return this.client.invokeContract(this.contractId, 'mint', [
+    const result = await this.client.invokeContract(this.contractId, 'mint', [
       new Address(to).toScVal(),
-      nativeToScVal(BigInt(amount), true),
+      nativeToScVal(BigInt(amount), { type: 'i128' }),
     ])
+    return String(scValToNative(result as import('@stellar/stellar-sdk').xdr.ScVal))
   }
 
   async burn(from: string, amount: string): Promise<string> {
-    return this.client.invokeContract(this.contractId, 'burn', [
+    const result = await this.client.invokeContract(this.contractId, 'burn', [
       new Address(from).toScVal(),
-      nativeToScVal(BigInt(amount), true),
+      nativeToScVal(BigInt(amount), { type: 'i128' }),
     ])
+    return String(scValToNative(result as import('@stellar/stellar-sdk').xdr.ScVal))
   }
 
   async transfer(from: string, to: string, amount: string): Promise<string> {
-    return this.client.invokeContract(this.contractId, 'transfer', [
+    const result = await this.client.invokeContract(this.contractId, 'transfer', [
       new Address(from).toScVal(),
       new Address(to).toScVal(),
-      nativeToScVal(BigInt(amount), true),
+      nativeToScVal(BigInt(amount), { type: 'i128' }),
     ])
+    return String(scValToNative(result as import('@stellar/stellar-sdk').xdr.ScVal))
   }
 
   async balanceOf(id: string): Promise<string> {
     const result = await this.client.invokeContract(this.contractId, 'balance_of', [
       new Address(id).toScVal(),
     ])
-    return String(scValToNative(result))
+    return String(scValToNative(result as import('@stellar/stellar-sdk').xdr.ScVal))
   }
 
   async approve(
@@ -59,12 +62,13 @@ export class TokenClient {
     amount: string,
     expiration: number,
   ): Promise<string> {
-    return this.client.invokeContract(this.contractId, 'approve', [
+    const result = await this.client.invokeContract(this.contractId, 'approve', [
       new Address(from).toScVal(),
       new Address(spender).toScVal(),
-      nativeToScVal(BigInt(amount), true),
-      nativeToScVal(expiration),
+      nativeToScVal(BigInt(amount), { type: 'i128' }),
+      nativeToScVal(expiration, { type: 'u32' }),
     ])
+    return String(scValToNative(result as import('@stellar/stellar-sdk').xdr.ScVal))
   }
 
   async allowance(from: string, spender: string): Promise<string> {
@@ -72,7 +76,7 @@ export class TokenClient {
       new Address(from).toScVal(),
       new Address(spender).toScVal(),
     ])
-    return String(scValToNative(result))
+    return String(scValToNative(result as import('@stellar/stellar-sdk').xdr.ScVal))
   }
 
   async metadata(): Promise<{
@@ -83,6 +87,12 @@ export class TokenClient {
     max_supply: string
   }> {
     const result = await this.client.invokeContract(this.contractId, 'metadata', [])
-    return scValToNative(result) as any
+    return scValToNative(result as import('@stellar/stellar-sdk').xdr.ScVal) as {
+      admin: string
+      name: string
+      symbol: string
+      decimals: number
+      max_supply: string
+    }
   }
 }
