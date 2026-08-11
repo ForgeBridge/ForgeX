@@ -5,6 +5,7 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { useWalletStore } from '../../hooks/useWallet'
 import { useSoroban } from '../../hooks/useSoroban'
+import { useTradeStore } from '../../hooks/useBondingCurve'
 import { parseTokenAmount } from '@forgex/sdk'
 import { QuotePreview } from './QuotePreview'
 
@@ -32,6 +33,7 @@ export function SellForm({
 
   const { isConnected, address, connect } = useWalletStore()
   const soroban = useSoroban()
+  const slippage = useTradeStore((state) => state.slippage)
 
   const handleSell = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -134,6 +136,7 @@ export function SellForm({
         tokenAmount={amount}
         tokenPrice={tokenPrice}
         tokenSymbol={tokenSymbol}
+        slippagePercent={slippage}
       />
 
       {!isConnected ? (

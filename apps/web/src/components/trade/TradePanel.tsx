@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { BuyForm } from './BuyForm'
 import { SellForm } from './SellForm'
+import { SlippageTolerance } from './SlippageTolerance'
 
 export interface TradePanelProps {
   curveContractId?: string
@@ -68,6 +69,10 @@ export function TradePanel({
           onSuccess={(res) => onTradeSuccess?.({ type: 'sell', amount: res.amount })}
         />
       )}
+
+      <div className="pt-3 mt-3 border-t border-[var(--forgex-border)]">
+        <SlippageTolerance />
+      </div>
     </div>
   )
 }
