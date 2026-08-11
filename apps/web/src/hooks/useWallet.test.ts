@@ -20,8 +20,13 @@ describe('useWalletStore', () => {
       isConnecting: false,
       error: null,
       networkPassphrase: null,
+      balance: null,
     })
     vi.clearAllMocks()
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ result: { sequence: '1' } }),
+    } as any)
   })
 
   it('should have correct initial state', () => {
