@@ -37,6 +37,7 @@ export function BuyForm({
   const { addToast, updateToast } = useToastStore()
   const soroban = useSoroban()
   const slippage = useTradeStore((state) => state.slippage)
+  const triggerRefresh = useTradeStore((state) => state.triggerRefresh)
 
   const numAmount = parseFloat(amount) || 0
   const unitPrice = parseFloat(tokenPrice) || 0.0001
@@ -132,6 +133,7 @@ export function BuyForm({
       setSuccessMessage(`Successfully purchased ${trimmed} ${tokenSymbol}!`)
       setAmount('')
       setShowConfirmModal(false)
+      triggerRefresh()
       onSuccess?.({ amount: trimmed, txHash })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to execute buy transaction'
