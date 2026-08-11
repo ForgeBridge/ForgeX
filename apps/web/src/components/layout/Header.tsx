@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { WalletConnect } from '../wallet/WalletConnect'
 import { NetworkBadge } from '../wallet/NetworkBadge'
+import { ThemeToggle } from '../ui/ThemeToggle'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -31,7 +32,7 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-5">
           <Link
             href="/"
             className="text-sm font-medium text-[var(--forgex-text-muted)] hover:text-[var(--forgex-text)] transition-colors"
@@ -45,12 +46,14 @@ export function Header() {
             Create
           </Link>
           <NetworkBadge />
+          <ThemeToggle />
           <WalletConnect />
         </nav>
 
-        {/* Mobile Nav Trigger & Compact Wallet */}
+        {/* Mobile Nav Trigger, Network & Theme */}
         <div className="flex md:hidden items-center gap-2">
           <NetworkBadge />
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

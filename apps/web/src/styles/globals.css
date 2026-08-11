@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+[data-theme="dark"] {
   --forgex-primary: #2e8c8e;
   --forgex-primary-dark: #1f5b5d;
   --forgex-bg: #0f172a;
@@ -12,8 +13,19 @@
   --forgex-text-muted: #94a3b8;
 }
 
+[data-theme="light"] {
+  --forgex-primary: #0d9488;
+  --forgex-primary-dark: #0f766e;
+  --forgex-bg: #f8fafc;
+  --forgex-surface: #ffffff;
+  --forgex-border: #cbd5e1;
+  --forgex-text: #0f172a;
+  --forgex-text-muted: #64748b;
+}
+
 body {
   background-color: var(--forgex-bg);
   color: var(--forgex-text);
   font-family: system-ui, -apple-system, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
