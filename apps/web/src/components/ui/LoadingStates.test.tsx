@@ -18,9 +18,9 @@ describe('Loading States (Spinner, PageLoader, TokenFeed)', () => {
     expect(screen.getByRole('status')).toBeInTheDocument()
   })
 
-  it('renders PageLoader when TokenFeed is in loading state', () => {
+  it('renders TokenCardSkeleton items when TokenFeed is in loading state', () => {
     render(<TokenFeed loading={true} />)
-    expect(screen.getByText(/Loading tokens from Soroban…/i)).toBeInTheDocument()
+    expect(screen.getAllByRole('status', { name: 'Loading token...' }).length).toBeGreaterThan(0)
   })
 
   it('renders tokens when TokenFeed loading finishes with tokens provided', () => {

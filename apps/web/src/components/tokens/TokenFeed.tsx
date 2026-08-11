@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { TokenCard } from './TokenCard'
+import { TokenFeedSkeleton } from './TokenCardSkeleton'
 import { useTokenStore, TokenItem } from '../../hooks/useToken'
-import { PageLoader } from '../ui/PageLoader'
 import { ErrorView } from '../ui/ErrorView'
 import { EmptyState } from '../ui/EmptyState'
 import { Spinner } from '../ui/Spinner'
@@ -96,7 +96,7 @@ export function TokenFeed({
   }
 
   if (isLoading) {
-    return <PageLoader message="Loading tokens from Soroban…" />
+    return <TokenFeedSkeleton count={pageSize} />
   }
 
   if (error) {
