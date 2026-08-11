@@ -1,4 +1,4 @@
-import { scValToNative, nativeToScVal } from '@stellar/stellar-sdk'
+import { StrKey } from '@stellar/stellar-sdk'
 
 const SCALE = 10_000_000
 const STROOPS_PER_XLM = 10_000_000
@@ -35,10 +35,9 @@ export function parseTokenAmount(
 
 export function validateAddress(address: string): boolean {
   try {
-    const { StrKey } = require('@stellar/stellar-sdk')
-    return StrKey.isValidEd25519PublicKey(address)
+    return StrKey.isValidEd25519PublicKey(address) || (address.length === 56 && address.startsWith('C'))
   } catch {
-    return address.length === 56 && address.startsWith('C')
+    return false
   }
 }
 
