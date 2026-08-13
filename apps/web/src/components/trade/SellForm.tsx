@@ -102,10 +102,26 @@ export function SellForm({
     try {
       const trimmed = amount.trim()
       const amountInBaseUnits = parseTokenAmount(trimmed, tokenDecimals).toString()
+      // Calculate minPayout with slippage tolerance
+      const minPayoutWithSlippage = (minPayout * (1 - slippage / 100)).toFixed(0)
+      // Deadline: 1 hour from now (unix timestamp)
+      const deadline = Math.floor(Date.now() / 1000) + 3600
+      const freighter = await import('@stellar/freighter-api')
 
       try {
         const curveClient = soroban.bondingCurve(curveContractId)
-        await curveClient.sell(address, amountInBaseUnits)
+        await curveClient.sell(address, amountInBaseUnits, minPayoutWithSlippage, deadline, {
+          sourceAccount: address,
+          signers: [
+            async (xdr: string) => {
+              const signResult = await freighter.signTransaction(xdr, { networkPassphrase: network === 'mainnet' ? 'Public Global Stellar Network ; September 2015' : 'Test SDF Network ; September 2015' })
+              if (signResult.error) {
+                throw new Error(signResult.error.message || 'Transaction signing rejected')
+              }
+              return signResult.signedTxXdr
+            },
+          ],
+        })
       } catch (err: any) {
         if (err.message?.includes('not yet wired') || err.message?.includes('Unsupported address') || !curveContractId) {
           // Handled simulation

@@ -130,6 +130,9 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
       const factoryId = FACTORY_CONTRACT_ID || 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM'
 
       const params = {
+        // Placeholder contract IDs - in production these would be pre-deployed
+        token_id: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM',
+        curve_id: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM',
         name: name.trim(),
         symbol: symbol.trim().toUpperCase(),
         decimals: parseInt(decimals, 10) || 7,
@@ -147,13 +150,15 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
 
       const result = await soroban.createToken(factoryId, params, {
         sourceAccount: address,
-        signTransaction: async (xdr: string) => {
-          const signResult = await freighter.signTransaction(xdr)
-          if (signResult.error) {
-            throw new Error(signResult.error.message || 'Transaction signing rejected')
-          }
-          return signResult.signedTxXdr
-        },
+        signers: [
+          async (xdr: string) => {
+            const signResult = await freighter.signTransaction(xdr)
+            if (signResult.error) {
+              throw new Error(signResult.error.message || 'Transaction signing rejected')
+            }
+            return signResult.signedTxXdr
+          },
+        ],
       }).catch((err) => {
         const fallbackTokenId = `C${Array.from({ length: 55 }, () => Math.floor(Math.random() * 36).toString(36).toUpperCase()).join('')}`
         const fallbackCurveId = `C${Array.from({ length: 55 }, () => Math.floor(Math.random() * 36).toString(36).toUpperCase()).join('')}`

@@ -1,5 +1,5 @@
 import { SorobanClient } from './client'
-import type { ForgeXNetwork, InvokeOptions, ReadOptions } from './client'
+import type { ForgeXNetwork, InvokeOptions, ReadOptions, SorobanClientConfig } from './client'
 import { TokenClient } from './contracts/token'
 import { FactoryClient } from './contracts/factory'
 import { BondingCurveClient } from './contracts/bonding-curve'
@@ -51,17 +51,16 @@ export class ForgeXClient {
     params: CreateTokenParams,
     options: InvokeOptions,
   ): Promise<{ tokenId: string; curveId: string }> {
-    const result = await this.factory(factoryId).createToken(params)
-    return { tokenId: result.token_id, curveId: result.curve_id }
+    return this.factory(factoryId).createToken(params, options)
   }
 
   /** Highest convenience: fetch a registered token's public record. */
   async getTokenInfo(
     factoryId: string,
     tokenId: string,
-    _options?: ReadOptions,
+    options?: ReadOptions,
   ): Promise<TokenInfo> {
-    return this.factory(factoryId).getToken(tokenId)
+    return this.factory(factoryId).getToken(tokenId, options)
   }
 
   async getLatestLedger(): Promise<number> {
@@ -69,5 +68,6 @@ export class ForgeXClient {
   }
 }
 
-export type { ForgeXNetwork, InvokeOptions, ReadOptions }
+export type { SorobanClientConfig as ForgeXClientFullConfig }
 export { SorobanClient }
+export type { ForgeXNetwork, InvokeOptions, ReadOptions }

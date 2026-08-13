@@ -1,5 +1,7 @@
-import { Address, nativeToScVal, scValToNative, xdr } from '@stellar/stellar-sdk'
-import type { SorobanClient } from '../client'
+import { scValToNative, xdr } from '@stellar/stellar-sdk'
+
+import type { InvokeOptions, ReadOptions, SorobanClient } from '../client'
+import { address, i128, u64, vec } from '../abi'
 import type { CurveInfo, CurveParams } from '../types/curve'
 
 export class BondingCurveClient {
@@ -12,64 +14,131 @@ export class BondingCurveClient {
     tokenId: string,
     curveParams: CurveParams,
     admin: string,
+    options: InvokeOptions,
+  ): Promise<void> {
+    await this.invoke(
+      'initialize',
+      [address(tokenId), this.encodeCurveParams(curveParams), address(admin)],
+      options,
+    )
+  }
+
+  async buy(
+    buyer: string,
+    amountOut: string,
+    maxCost: string,
+    deadline: number | bigint,
+    options: InvokeOptions,
   ): Promise<string> {
-    const result = await this.client.invokeContract(this.contractId, 'initialize', [
-      new Address(tokenId).toScVal(),
-      this.encodeCurveParams(curveParams),
-      new Address(admin).toScVal(),
-    ])
-    return String(scValToNative(result as xdr.ScVal))
+    const result = await this.invoke(
+      'buy',
+      [address(buyer), i128(amountOut), i128(maxCost), u64(deadline)],
+      options,
+    )
+    return this.retvalAmount(result.retval)
   }
 
-  async buy(buyer: string, amountOut: string): Promise<string> {
-    const result = await this.client.invokeContract(this.contractId, 'buy', [
-      new Address(buyer).toScVal(),
-      nativeToScVal(BigInt(amountOut), { type: 'i128' }),
-    ])
-    return String(scValToNative(result as xdr.ScVal))
+  async sell(
+    seller: string,
+    amountIn: string,
+    minPayout: string,
+    deadline: number | bigint,
+    options: InvokeOptions,
+  ): Promise<string> {
+    const result = await this.invoke(
+      'sell',
+      [address(seller), i128(amountIn), i128(minPayout), u64(deadline)],
+      options,
+    )
+    return this.retvalAmount(result.retval)
   }
 
-  async sell(seller: string, amountIn: string): Promise<string> {
-    const result = await this.client.invokeContract(this.contractId, 'sell', [
-      new Address(seller).toScVal(),
-      nativeToScVal(BigInt(amountIn), { type: 'i128' }),
-    ])
-    return String(scValToNative(result as xdr.ScVal))
+  async getPrice(options: ReadOptions = {}): Promise<string> {
+    const retval = await this.read('get_price', [], options)
+    return this.retvalAmount(retval)
   }
 
-  async getPrice(): Promise<string> {
-    const result = await this.client.invokeContract(this.contractId, 'get_price', [])
-    return String(scValToNative(result as xdr.ScVal))
+  async getReserve(options: ReadOptions = {}): Promise<string> {
+    const retval = await this.read('get_reserve', [], options)
+    return this.retvalAmount(retval)
   }
 
-  async getReserve(): Promise<string> {
-    const result = await this.client.invokeContract(this.contractId, 'get_reserve', [])
-    return String(scValToNative(result as xdr.ScVal))
+  async getTokensSold(options: ReadOptions = {}): Promise<string> {
+    const retval = await this.read('get_tokens_sold', [], options)
+    return this.retvalAmount(retval)
   }
 
-  async getTokensSold(): Promise<string> {
-    const result = await this.client.invokeContract(this.contractId, 'get_tokens_sold', [])
-    return String(scValToNative(result as xdr.ScVal))
+  async getMarketCap(options: ReadOptions = {}): Promise<string> {
+    const retval = await this.read('get_market_cap', [], options)
+    return this.retvalAmount(retval)
   }
 
-  async getMarketCap(): Promise<string> {
-    const result = await this.client.invokeContract(this.contractId, 'get_market_cap', [])
-    return String(scValToNative(result as xdr.ScVal))
+  async getCurveInfo(options: ReadOptions = {}): Promise<CurveInfo> {
+    const retval = await this.read('get_curve_info', [], options)
+    return retval ? this.decodeCurveInfo(scValToNative(retval) as unknown[]) : this.emptyCurveInfo()
   }
 
-  async getCurveInfo(): Promise<CurveInfo> {
-    const result = await this.client.invokeContract(this.contractId, 'get_curve_info', [])
-    return scValToNative(result as xdr.ScVal) as CurveInfo
+  getContractId(): string {
+    return this.contractId
   }
 
   private encodeCurveParams(params: CurveParams): xdr.ScVal {
-    return nativeToScVal(
-      {
-        initial_price: BigInt(params.initial_price),
-        steepness: BigInt(params.steepness),
-        reserve_target: BigInt(params.reserve_target),
+    return vec([
+      i128(params.initial_price),
+      i128(params.steepness),
+      i128(params.reserve_target),
+    ])
+  }
+
+  private decodeCurveInfo(native: unknown[]): CurveInfo {
+    const params = native[1] as unknown[]
+    return {
+      token_id: String(native[0]),
+      params: {
+        initial_price: String(params[0]),
+        steepness: String(params[1]),
+        reserve_target: String(params[2]),
       },
-      { type: 'struct' } as unknown as { type: 'i128' },
-    )
+      reserve: String(native[2]),
+      tokens_sold: String(native[3]),
+      price: String(native[4]),
+      market_cap: String(native[5]),
+      admin: String(native[6]),
+    }
+  }
+
+  private emptyCurveInfo(): CurveInfo {
+    return {
+      token_id: '',
+      params: { initial_price: '0', steepness: '0', reserve_target: '0' },
+      reserve: '0',
+      tokens_sold: '0',
+      price: '0',
+      market_cap: '0',
+      admin: '',
+    }
+  }
+
+  private retvalAmount(retval?: xdr.ScVal): string {
+    if (!retval) {
+      return '0'
+    }
+    return scValToNative(retval).toString()
+  }
+
+  private read(
+    method: string,
+    args: xdr.ScVal[],
+    options: ReadOptions = {},
+  ): Promise<xdr.ScVal | undefined> {
+    return this.client.read(this.contractId, method, args, options)
+  }
+
+  private invoke(
+    method: string,
+    args: xdr.ScVal[],
+    options: InvokeOptions,
+  ): Promise<{ retval?: xdr.ScVal }> {
+    return this.client.invoke(this.contractId, method, args, options)
   }
 }
