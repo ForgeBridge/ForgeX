@@ -20,7 +20,7 @@ export const STROOPS_PER_XLM = 10_000_000
 export const SCALE = 10_000_000
 
 export const CURVE_DEFAULTS = {
-  initialPrice: 100n,
-  steepness: 1n,
-  reserveTarget: 500_000n * BigInt(STROOPS_PER_XLM),
+  initialPrice: BigInt(100),
+  steepness: BigInt(1),
+  reserveTarget: BigInt(500_000) * BigInt(STROOPS_PER_XLM),
 }
