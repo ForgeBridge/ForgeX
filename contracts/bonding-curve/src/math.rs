@@ -14,7 +14,7 @@ fn need(v: Option<i128>, what: &str) -> i128 {
 /// SCALE-scaled fixed point. Panics on overflow.
 pub fn calculate_price(params: &CurveParams, tokens_sold: i128) -> i128 {
     // P(S) = P₀ × e^(k × S)
-    let exponent = need(params.steepness.checked_mul(tokens_sold), "price exponent") / SCALE;
+    let exponent = need(params.steepness.checked_mul(tokens_sold), "price exponent");
     let exp_val = exp_approx(exponent);
     need(params.initial_price.checked_mul(exp_val), "price") / SCALE
 }
@@ -27,14 +27,16 @@ pub fn calculate_buy_cost(params: &CurveParams, s1: i128, s2: i128) -> i128 {
     if s1 == s2 {
         return 0;
     }
-    let exp_s1 = exp_approx(need(params.steepness.checked_mul(s1), "cost exponent") / SCALE);
-    let exp_s2 = exp_approx(need(params.steepness.checked_mul(s2), "cost exponent") / SCALE);
+    if params.steepness == 0 {
+        let amount = need(s2.checked_sub(s1), "cost supply diff");
+        return need(params.initial_price.checked_mul(amount), "cost") / SCALE;
+    }
+    let exp_s1 = exp_approx(need(params.steepness.checked_mul(s1), "cost exponent"));
+    let exp_s2 = exp_approx(need(params.steepness.checked_mul(s2), "cost exponent"));
     let diff = need(exp_s2.checked_sub(exp_s1), "cost diff");
-    let ratio = need(
-        params.initial_price.checked_div(params.steepness),
-        "cost ratio",
-    );
-    need(ratio.checked_mul(diff), "cost") / SCALE
+    let numerator = need(params.initial_price.checked_mul(diff), "cost numerator");
+    let denominator = need(params.steepness.checked_mul(SCALE), "cost denominator");
+    need(numerator.checked_div(denominator), "cost")
 }
 
 /// Payout for selling supply back from `s1` to `s2`; the reverse of a buy
