@@ -43,8 +43,8 @@ fn deploy_curve<'a>(env: &'a Env) -> (Address, BondingCurveContractClient<'a>) {
     let contract_id = env.register(BondingCurveContract, ());
     let client = BondingCurveContractClient::new(env, &contract_id);
     let params = CurveParams {
-        initial_price: 100,
-        steepness: 1,
+        initial_price: 10_000_000,
+        steepness: 100,
         reserve_target: 5_000_000_000_000,
     };
     client.initialize(&token_id, &params, &admin);
@@ -57,7 +57,7 @@ fn test_initialize() {
     env.mock_all_auths();
     let (_id, client) = deploy_curve(&env);
     let price = client.get_price();
-    assert_eq!(price, 100);
+    assert_eq!(price, 10_000_000);
 }
 
 #[test]
@@ -82,7 +82,7 @@ fn test_get_curve_info() {
     env.mock_all_auths();
     let (_id, client) = deploy_curve(&env);
     let info = client.get_curve_info();
-    assert_eq!(info.price, 100);
+    assert_eq!(info.price, 10_000_000);
     assert_eq!(info.reserve, 0);
     assert_eq!(info.tokens_sold, 0);
 }
@@ -493,7 +493,7 @@ fn test_tokens_sold_never_decreases_on_buy() {
     let trader = generate_address(&env);
 
     let mut prev_tokens = 0;
-    for i in 1..=5 {
+    for _ in 1..=5 {
         client.buy(&trader, &100i128, &i128::MAX, &u64::MAX);
         let tokens = client.get_tokens_sold();
         assert_eq!(tokens, prev_tokens + 100);
@@ -618,5 +618,5 @@ fn test_reserve_equals_sum_of_costs_minus_fees() {
     let fees2 = client.get_admin_fees();
 
     // Same invariant should hold
-    assert_eq!(reserve2 + fees2, reserve1 + cost2);
+    assert_eq!(reserve2 + fees2, cost1 + cost2);
 }

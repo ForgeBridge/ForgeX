@@ -454,12 +454,7 @@ impl BondingCurveContract {
     /// means no reserve, 1 means reserve equals market cap. Publicly queryable.
     pub fn get_reserve_ratio(env: Env) -> i128 {
         let reserve: i128 = env.storage().persistent().get(&"reserve").unwrap();
-        let params: CurveParams = env.storage().instance().get(&"curve_params").unwrap();
-        let tokens_sold: i128 = env.storage().persistent().get(&"tokens_sold").unwrap();
-        let price = calculate_price(&params, tokens_sold);
-        let market_cap = price
-            .checked_mul(tokens_sold)
-            .unwrap_or_else(|| panic!("bonding curve: market cap overflow"));
+        let market_cap = Self::get_market_cap(env.clone());
         if market_cap == 0 {
             return 0;
         }
