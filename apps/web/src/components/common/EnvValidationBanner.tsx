@@ -14,9 +14,7 @@ export function EnvValidationBanner() {
     }
   }, [])
 
-  if (!result || dismissed) {
-    return null
-  }
+  if (!result || dismissed) return null
 
   const isError = !result.isValid
 
@@ -25,8 +23,8 @@ export function EnvValidationBanner() {
       role="alert"
       className={`px-4 py-2.5 text-xs flex items-center justify-between border-b ${
         isError
-          ? 'bg-red-500/10 border-red-500/30 text-red-300'
-          : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+          ? 'bg-destructive/10 border-destructive/30 text-destructive'
+          : 'bg-warning/10 border-warning/30 text-warning'
       }`}
     >
       <div className="flex items-center gap-2 max-w-5xl">
@@ -37,7 +35,6 @@ export function EnvValidationBanner() {
           {isError ? result.errors.join(' | ') : result.warnings.join(' | ')}
         </span>
       </div>
-
       <button
         type="button"
         onClick={() => setDismissed(true)}

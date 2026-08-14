@@ -6,23 +6,27 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function Input({ label, error, id, className = '', ...props }: InputProps) {
-  const inputId = id || (label ? label.toLowerCase().replace(/[^a-z0-9]/g, '-') : undefined)
+  const inputId =
+    id || (label ? label.toLowerCase().replace(/[^a-z0-9]/g, '-') : undefined)
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-[var(--forgex-text-muted)]">
+        <label
+          htmlFor={inputId}
+          className="block text-sm font-medium text-muted-foreground"
+        >
           {label}
         </label>
       )}
       <input
         id={inputId}
-        className={`w-full px-3 py-2 rounded-lg bg-[var(--forgex-bg)] border ${
-          error ? 'border-red-500' : 'border-[var(--forgex-border)]'
-        } text-[var(--forgex-text)] placeholder-[var(--forgex-text-muted)] focus:outline-none focus:border-[var(--forgex-primary)] ${className}`}
+        className={`w-full h-9 px-3 rounded-md bg-background border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 transition-colors ${
+          error ? 'border-destructive' : 'border-input'
+        } ${className}`}
         {...props}
       />
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
 }
