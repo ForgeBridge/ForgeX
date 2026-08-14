@@ -79,6 +79,6 @@ describe('TransactionConfirmationModal Component', () => {
       />
     )
 
-    expect(screen.getByText('Signing in Wallet…')).toBeInTheDocument()
+    expect(screen.getByText('Signing...')).toBeInTheDocument()
   })
 })

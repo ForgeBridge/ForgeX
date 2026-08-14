@@ -27,10 +27,10 @@ describe('QuotePreview', () => {
       />,
     )
 
-    expect(screen.getByText(/Estimated Total Cost/i)).toBeInTheDocument()
+    expect(screen.getByText(/Est\. Total Cost:/)).toBeInTheDocument()
     expect(screen.getByText('10.100000 XLM')).toBeInTheDocument()
     expect(screen.getByText('0.100000 XLM')).toBeInTheDocument()
-    expect(screen.getByText(/Min Tokens Received/i)).toBeInTheDocument()
+    expect(screen.getByText(/Min Received:/)).toBeInTheDocument()
   })
 
   it('calculates sell quote with estimated payout', () => {
@@ -45,8 +45,8 @@ describe('QuotePreview', () => {
       />,
     )
 
-    expect(screen.getByText(/Estimated Payout/i)).toBeInTheDocument()
+    expect(screen.getByText(/Est\. Payout:/)).toBeInTheDocument()
     expect(screen.getByText('9.900000 XLM')).toBeInTheDocument()
-    expect(screen.getByText(/Min XLM Received/i)).toBeInTheDocument()
+    expect(screen.getByText(/Min XLM:/)).toBeInTheDocument()
   })
 })

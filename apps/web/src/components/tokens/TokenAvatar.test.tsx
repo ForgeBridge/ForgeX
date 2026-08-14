@@ -11,7 +11,7 @@ describe('TokenAvatar Component', () => {
 
   it('renders fallback initials identicon when imageUri is empty or invalid', () => {
     render(<TokenAvatar symbol="SPEPE" />)
-    expect(screen.getByText('SPE')).toBeInTheDocument()
+    expect(screen.getByText('SP')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'SPEPE avatar' })).toBeInTheDocument()
   })
 
@@ -20,6 +20,6 @@ describe('TokenAvatar Component', () => {
     const img = screen.getByRole('img')
     fireEvent.error(img)
 
-    expect(screen.getByText('XLM')).toBeInTheDocument()
+    expect(screen.getByText('XL')).toBeInTheDocument()
   })
 })

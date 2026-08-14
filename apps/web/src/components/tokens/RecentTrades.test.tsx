@@ -36,6 +36,6 @@ describe('RecentTrades Component', () => {
 
   it('renders empty state when no trades exist', () => {
     render(<RecentTrades trades={[]} tokenSymbol="FORGE" />)
-    expect(screen.getByText(/no trades recorded for this token yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/No trades yet\. Be the first to trade!/i)).toBeInTheDocument()
   })
 })

@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { metadata } from './layout'
+
+vi.mock('geist/font/sans', () => ({ GeistSans: { variable: '' } }))
+vi.mock('geist/font/mono', () => ({ GeistMono: { variable: '' } }))
 
 describe('SEO Metadata Configuration', () => {
   it('defines comprehensive OpenGraph and Twitter metadata', () => {

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Header } from './Header'
 import { useWalletStore } from '../../hooks/useWallet'
@@ -9,6 +9,10 @@ vi.mock('next/link', () => ({
       {children}
     </a>
   ),
+}))
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
 }))
 
 describe('Header Component', () => {
@@ -25,35 +29,42 @@ describe('Header Component', () => {
   it('renders desktop brand and navigation links', () => {
     render(<Header />)
     expect(screen.getByText('ForgeX')).toBeInTheDocument()
-    expect(screen.getAllByText('Feed')[0]).toBeInTheDocument()
-    expect(screen.getAllByText('Create')[0]).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Explore' }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('link', { name: 'Create' }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('link', { name: 'Dashboard' }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('link', { name: 'Settings' }).length).toBeGreaterThan(0)
   })
 
-  it('toggles mobile menu drawer on mobile hamburger button click', () => {
+  it('toggles mobile menu drawer on hamburger button click', async () => {
     render(<Header />)
 
-    const menuButton = screen.getByRole('button', { name: 'Open mobile menu' })
-    expect(menuButton).toBeInTheDocument()
-    expect(screen.queryByRole('dialog', { name: 'Mobile Navigation' })).not.toBeInTheDocument()
+    const menuButton = screen.getByRole('button', { name: 'Open menu' })
+    expect(menuButton).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getAllByRole('link', { name: 'Explore' })).toHaveLength(1)
 
     fireEvent.click(menuButton)
-    expect(screen.getByRole('dialog', { name: 'Mobile Navigation' })).toBeInTheDocument()
-    expect(screen.getByText('Token Feed')).toBeInTheDocument()
-    expect(screen.getByText('Create Token')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Close menu' })).toHaveAttribute('aria-expanded', 'true')
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: 'Explore' })).toHaveLength(2)
+    })
 
-    // Close on second click
-    fireEvent.click(screen.getByRole('button', { name: 'Close mobile menu' }))
-    expect(screen.queryByRole('dialog', { name: 'Mobile Navigation' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close menu' }))
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: 'Explore' })).toHaveLength(1)
+    })
   })
 
-  it('closes mobile menu on Escape key press', () => {
+  it('closes mobile menu on Escape key press', async () => {
     render(<Header />)
 
-    const menuButton = screen.getByRole('button', { name: 'Open mobile menu' })
-    fireEvent.click(menuButton)
-    expect(screen.getByRole('dialog', { name: 'Mobile Navigation' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: 'Explore' })).toHaveLength(2)
+    })
 
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('dialog', { name: 'Mobile Navigation' })).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: 'Explore' })).toHaveLength(1)
+    })
   })
 })

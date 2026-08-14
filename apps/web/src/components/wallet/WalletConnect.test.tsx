@@ -19,9 +19,9 @@ describe('WalletConnect Component', () => {
     })
   })
 
-  it('renders Connect Wallet button when disconnected', () => {
+  it('renders Connect button when disconnected', () => {
     render(<WalletConnect />)
-    expect(screen.getByRole('button', { name: 'Connect Wallet' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument()
   })
 
   it('renders wallet address and XLM balance when connected', () => {
@@ -48,7 +48,7 @@ describe('WalletConnect Component', () => {
 
     render(<WalletConnect />)
 
-    const copyBtn = screen.getByRole('button', { name: 'Copy connected address' })
+    const copyBtn = screen.getByRole('button', { name: 'Copy address' })
     fireEvent.click(copyBtn)
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(fullAddress)

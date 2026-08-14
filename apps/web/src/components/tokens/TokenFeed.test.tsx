@@ -42,7 +42,7 @@ describe('TokenFeed Search, Filtering & Pagination', () => {
 
   it('renders all tokens and search input', () => {
     render(<TokenFeed />)
-    expect(screen.getByPlaceholderText(/search tokens/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Search tokens/i)).toBeInTheDocument()
     expect(screen.getByText('Alpha Token')).toBeInTheDocument()
     expect(screen.getByText('Beta Coin')).toBeInTheDocument()
     expect(screen.getByText('Gamma Memecoin')).toBeInTheDocument()
@@ -50,7 +50,7 @@ describe('TokenFeed Search, Filtering & Pagination', () => {
 
   it('filters tokens by name or symbol match', () => {
     render(<TokenFeed />)
-    const searchInput = screen.getByPlaceholderText(/search tokens/i)
+    const searchInput = screen.getByLabelText(/Search tokens/i)
 
     fireEvent.change(searchInput, { target: { value: 'beta' } })
 
@@ -61,14 +61,14 @@ describe('TokenFeed Search, Filtering & Pagination', () => {
 
   it('shows empty filter state when no tokens match search query and resets on clear', () => {
     render(<TokenFeed />)
-    const searchInput = screen.getByPlaceholderText(/search tokens/i)
+    const searchInput = screen.getByLabelText(/Search tokens/i)
 
     fireEvent.change(searchInput, { target: { value: 'NONEXISTENT' } })
 
-    expect(screen.getByText('No matching tokens found')).toBeInTheDocument()
+    expect(screen.getByText('No matching tokens')).toBeInTheDocument()
 
-    // Clicking Clear Filters resets search
-    const clearBtn = screen.getByRole('button', { name: 'Clear Filters' })
+    // Clicking Clear Search resets search
+    const clearBtn = screen.getByRole('button', { name: 'Clear Search' })
     fireEvent.click(clearBtn)
 
     expect(screen.getByText('Alpha Token')).toBeInTheDocument()
@@ -77,18 +77,22 @@ describe('TokenFeed Search, Filtering & Pagination', () => {
   })
 
   it('supports pagination and loads more tokens on button click', async () => {
-    // Render with pageSize = 2
+    // Sorted by marketCap desc: Gamma, Alpha, Beta
     render(<TokenFeed pageSize={2} />)
 
-    expect(screen.getByText(/showing 2 of 3 tokens/i)).toBeInTheDocument()
-    const loadMoreBtn = screen.getByRole('button', { name: 'Load more tokens' })
+    expect(screen.getByText(/Showing 2 of 3/)).toBeInTheDocument()
+    expect(screen.getByText('Gamma Memecoin')).toBeInTheDocument()
+    expect(screen.getByText('Alpha Token')).toBeInTheDocument()
+
+    const loadMoreBtn = screen.getByRole('button', { name: 'Load More' })
     expect(loadMoreBtn).toBeInTheDocument()
 
     fireEvent.click(loadMoreBtn)
 
     await waitFor(() => {
-      expect(screen.getByText(/showing 3 of 3 tokens/i)).toBeInTheDocument()
-      expect(screen.getByText(/all tokens loaded/i)).toBeInTheDocument()
+      expect(screen.getByText(/Showing 3 of 3/)).toBeInTheDocument()
+      expect(screen.getByText('Beta Coin')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Load More' })).not.toBeInTheDocument()
     })
   })
 })
