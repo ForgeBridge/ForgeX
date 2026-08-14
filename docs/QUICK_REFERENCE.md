@@ -43,13 +43,13 @@ ForgeX/
 
 ### 🔗 Key Contract Addresses (Testnet)
 
+Deployed **2026-08-14**. Factory is initialized (admin = deployer) with one registered token (`FDEMO`).
+
 | Contract | Address | Explorer |
 |----------|---------|----------|
-| Factory | `CAAA...` | [StellarExpert](https://stellar.expert/explorer/testnet/contract/CAAA...) |
-| Bonding Curve | `CBBB...` | [StellarExpert](https://stellar.expert/explorer/testnet/contract/CBBB...) |
-| Token (example) | `CCCC...` | [StellarExpert](https://stellar.expert/explorer/testnet/contract/CCCC...) |
-
-*Update after deployment*
+| Factory | `CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP` | [StellarExpert](https://stellar.expert/explorer/testnet/contract/CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP) |
+| Bonding Curve | `CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN` | [StellarExpert](https://stellar.expert/explorer/testnet/contract/CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN) |
+| Token (`FDEMO`) | `CBYT6KPTULCXJSYIEUTWZJKKWF6B7S7SZIJRZCKSO4H5QSE5ZKQ2E6OI` | [StellarExpert](https://stellar.expert/explorer/testnet/contract/CBYT6KPTULCXJSYIEUTWZJKKWF6B7S7SZIJRZCKSO4H5QSE5ZKQ2E6OI) |
 
 ---
 

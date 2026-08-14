@@ -61,6 +61,18 @@ export SOROBAN_ACCOUNT=<your-secret-key>
 
 ## Testnet Deployment
 
+### Current Live Deployed Contracts
+
+Deployed **2026-08-14** to Stellar Testnet. Factory is initialized with admin = deployer and one token (`FDEMO`) is registered.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| Factory | `CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP` | https://stellar.expert/explorer/testnet/contract/CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP |
+| Bonding Curve | `CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN` | https://stellar.expert/explorer/testnet/contract/CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN |
+| Token (`FDEMO`) | `CBYT6KPTULCXJSYIEUTWZJKKWF6B7S7SZIJRZCKSO4H5QSE5ZKQ2E6OI` | https://stellar.expert/explorer/testnet/contract/CBYT6KPTULCXJSYIEUTWZJKKWF6B7S7SZIJRZCKSO4H5QSE5ZKQ2E6OI |
+
+Also available in `lab.stellar.org` (see start of this doc's discovery) and saved to `.env.testnet`.
+
 ### Automated (GitHub Actions)
 
 1. Push to `main` branch or trigger workflow manually
