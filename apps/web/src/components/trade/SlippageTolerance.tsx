@@ -11,12 +11,17 @@ export interface SlippageToleranceProps {
 const PRESET_SLIPPAGES = [0.5, 1.0, 2.0, 5.0]
 
 export function SlippageTolerance({ value, onChange }: SlippageToleranceProps) {
-  const { slippage: storeSlippage, setSlippage: setStoreSlippage } = useTradeStore()
+  const { slippage: storeSlippage, setSlippage: setStoreSlippage } =
+    useTradeStore()
   const currentSlippage = value !== undefined ? value : storeSlippage
 
-  const [isCustom, setIsCustom] = useState(!PRESET_SLIPPAGES.includes(currentSlippage))
+  const [isCustom, setIsCustom] = useState(
+    !PRESET_SLIPPAGES.includes(currentSlippage)
+  )
   const [customValue, setCustomValue] = useState(
-    !PRESET_SLIPPAGES.includes(currentSlippage) ? currentSlippage.toString() : '',
+    !PRESET_SLIPPAGES.includes(currentSlippage)
+      ? currentSlippage.toString()
+      : ''
   )
 
   const handleSelect = (percent: number) => {
@@ -43,9 +48,11 @@ export function SlippageTolerance({ value, onChange }: SlippageToleranceProps) {
 
   return (
     <div className="space-y-2 py-1 text-xs">
-      <div className="flex justify-between items-center text-[var(--forgex-text-muted)]">
-        <label htmlFor="custom-slippage-input" className="font-medium">Slippage Tolerance</label>
-        <span className="font-mono font-semibold text-[var(--forgex-text)]">
+      <div className="flex justify-between items-center text-muted-foreground">
+        <label htmlFor="custom-slippage-input" className="font-medium">
+          Slippage Tolerance
+        </label>
+        <span className="font-mono font-semibold text-foreground">
           {currentSlippage}%
         </span>
       </div>
@@ -60,8 +67,8 @@ export function SlippageTolerance({ value, onChange }: SlippageToleranceProps) {
               onClick={() => handleSelect(preset)}
               className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
                 isSelected
-                  ? 'bg-[var(--forgex-primary)]/20 border-[var(--forgex-primary)] text-[var(--forgex-primary)] font-bold'
-                  : 'bg-[var(--forgex-bg)] border-[var(--forgex-border)] text-[var(--forgex-text-muted)] hover:text-[var(--forgex-text)]'
+                  ? 'bg-primary/10 border-primary text-primary'
+                  : 'bg-muted border-border text-muted-foreground hover:text-foreground'
               }`}
             >
               {preset}%
@@ -83,30 +90,40 @@ export function SlippageTolerance({ value, onChange }: SlippageToleranceProps) {
               handleCustomChange(e.target.value)
             }}
             onFocus={() => setIsCustom(true)}
-            className={`w-full px-2 py-1 rounded text-xs bg-[var(--forgex-bg)] border ${
+            className={`w-full px-2 py-1 rounded text-xs bg-background border ${
               isCustom
-                ? 'border-[var(--forgex-primary)] text-[var(--forgex-text)]'
-                : 'border-[var(--forgex-border)] text-[var(--forgex-text-muted)]'
-            } placeholder-[var(--forgex-text-muted)] focus:outline-none`}
+                ? 'border-primary text-foreground'
+                : 'border-border text-muted-foreground'
+            } placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring`}
           />
-          <span className="absolute right-2 top-1 text-[var(--forgex-text-muted)] pointer-events-none">
+          <span className="absolute right-2 top-1 text-muted-foreground pointer-events-none">
             %
           </span>
         </div>
       </div>
 
       {currentSlippage > 5 && (
-        <p className="text-amber-400 text-[11px] flex items-center gap-1">
-          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <p className="text-warning text-[11px] flex items-center gap-1">
+          <svg
+            className="w-3.5 h-3.5 flex-shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"
+            />
           </svg>
-          High slippage increases the risk of frontrunning and unfavorable execution.
+          High slippage increases frontrunning risk.
         </p>
       )}
 
       {currentSlippage < 0.5 && (
-        <p className="text-blue-400 text-[11px]">
-          Low slippage may cause your transaction to revert due to price movement.
+        <p className="text-primary text-[11px]">
+          Low slippage may cause transactions to revert.
         </p>
       )}
     </div>

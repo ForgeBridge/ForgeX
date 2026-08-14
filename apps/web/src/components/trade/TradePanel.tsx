@@ -7,6 +7,7 @@ import { SlippageTolerance } from './SlippageTolerance'
 import { RiskDisclaimer } from '../common/RiskDisclaimer'
 import { useWalletStore } from '../../hooks/useWallet'
 import { Button } from '../ui/Button'
+import Link from 'next/link'
 
 export interface TradePanelProps {
   curveContractId?: string
@@ -29,28 +30,27 @@ export function TradePanel({
   const { isConnected, connect } = useWalletStore()
 
   return (
-    <div className="bg-[var(--forgex-surface)] rounded-xl border border-[var(--forgex-border)] p-5 shadow-sm space-y-4">
+    <div className="bg-card rounded-lg border border-border p-4 space-y-4">
       {!isConnected && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-300 flex items-center justify-between gap-2">
-          <span>Connect Freighter wallet to trade ${tokenSymbol}</span>
-          <button
-            type="button"
-            onClick={connect}
-            className="font-semibold underline hover:text-amber-200 shrink-0"
+        <div className="bg-muted border border-border rounded-md p-3 text-xs text-muted-foreground flex items-center justify-between gap-2">
+          <span>Connect wallet to trade ${tokenSymbol}</span>
+          <Link
+            href="/auth"
+            className="font-semibold text-primary hover:underline shrink-0"
           >
             Connect
-          </button>
+          </Link>
         </div>
       )}
 
-      <div className="flex border-b border-[var(--forgex-border)]">
+      <div className="flex border-b border-border">
         <button
           type="button"
           onClick={() => setActiveTab('buy')}
-          className={`flex-1 py-2 text-sm font-semibold transition-colors border-b-2 ${
+          className={`flex-1 py-2 text-sm font-medium transition-colors border-b-2 ${
             activeTab === 'buy'
-              ? 'text-[var(--forgex-primary)] border-[var(--forgex-primary)]'
-              : 'text-[var(--forgex-text-muted)] border-transparent hover:text-[var(--forgex-text)]'
+              ? 'text-success border-success'
+              : 'text-muted-foreground border-transparent hover:text-foreground'
           }`}
         >
           Buy
@@ -58,10 +58,10 @@ export function TradePanel({
         <button
           type="button"
           onClick={() => setActiveTab('sell')}
-          className={`flex-1 py-2 text-sm font-semibold transition-colors border-b-2 ${
+          className={`flex-1 py-2 text-sm font-medium transition-colors border-b-2 ${
             activeTab === 'sell'
-              ? 'text-red-400 border-red-400'
-              : 'text-[var(--forgex-text-muted)] border-transparent hover:text-[var(--forgex-text)]'
+              ? 'text-destructive border-destructive'
+              : 'text-muted-foreground border-transparent hover:text-foreground'
           }`}
         >
           Sell
@@ -74,7 +74,9 @@ export function TradePanel({
           tokenSymbol={tokenSymbol}
           tokenDecimals={tokenDecimals}
           tokenPrice={tokenPrice}
-          onSuccess={(res) => onTradeSuccess?.({ type: 'buy', amount: res.amount })}
+          onSuccess={(res) =>
+            onTradeSuccess?.({ type: 'buy', amount: res.amount })
+          }
         />
       ) : (
         <SellForm
@@ -83,11 +85,13 @@ export function TradePanel({
           tokenDecimals={tokenDecimals}
           tokenPrice={tokenPrice}
           userBalance={userBalance}
-          onSuccess={(res) => onTradeSuccess?.({ type: 'sell', amount: res.amount })}
+          onSuccess={(res) =>
+            onTradeSuccess?.({ type: 'sell', amount: res.amount })
+          }
         />
       )}
 
-      <div className="pt-2 border-t border-[var(--forgex-border)] space-y-3">
+      <div className="pt-3 border-t border-border space-y-3">
         <SlippageTolerance />
         <RiskDisclaimer />
       </div>
