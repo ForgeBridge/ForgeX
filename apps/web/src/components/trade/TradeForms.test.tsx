@@ -5,6 +5,19 @@ import { SellForm } from './SellForm'
 import { TradePanel } from './TradePanel'
 import { useWalletStore } from '../../hooks/useWallet'
 
+vi.mock('@stellar/freighter-api', () => ({
+  signTransaction: vi.fn().mockResolvedValue({ signedTxXdr: 'AAAA...' }),
+}))
+
+vi.mock('../../hooks/useSoroban', () => ({
+  useSoroban: () => ({
+    bondingCurve: () => ({
+      buy: vi.fn().mockResolvedValue('simulated'),
+      sell: vi.fn().mockResolvedValue('simulated'),
+    }),
+  }),
+}))
+
 describe('Trade Forms (BuyForm, SellForm, TradePanel)', () => {
   beforeEach(() => {
     useWalletStore.setState({

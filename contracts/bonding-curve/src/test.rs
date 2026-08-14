@@ -362,13 +362,17 @@ fn test_buy_sell_size_limits() {
     client.set_buy_limits(&100i128, &5000i128);
 
     // Buy below minimum fails
-    assert!(client.try_buy(&buyer, &50i128, &i128::MAX, &u64::MAX).is_err());
+    assert!(client
+        .try_buy(&buyer, &50i128, &i128::MAX, &u64::MAX)
+        .is_err());
 
     // Buy within limits succeeds
     client.buy(&buyer, &1000i128, &i128::MAX, &u64::MAX);
 
     // Buy above maximum fails
-    assert!(client.try_buy(&buyer, &6000i128, &i128::MAX, &u64::MAX).is_err());
+    assert!(client
+        .try_buy(&buyer, &6000i128, &i128::MAX, &u64::MAX)
+        .is_err());
 }
 
 #[test]
@@ -385,13 +389,17 @@ fn test_sell_size_limits() {
     client.set_sell_limits(&100i128, &1000i128);
 
     // Sell below minimum fails
-    assert!(client.try_sell(&seller, &50i128, &0i128, &u64::MAX).is_err());
+    assert!(client
+        .try_sell(&seller, &50i128, &0i128, &u64::MAX)
+        .is_err());
 
     // Sell within limits succeeds
     client.sell(&seller, &500i128, &0i128, &u64::MAX);
 
     // Sell above maximum fails
-    assert!(client.try_sell(&seller, &1500i128, &0i128, &u64::MAX).is_err());
+    assert!(client
+        .try_sell(&seller, &1500i128, &0i128, &u64::MAX)
+        .is_err());
 }
 
 #[test]
@@ -410,7 +418,9 @@ fn test_curve_cap_graduation() {
     assert!(client.is_graduated());
 
     // Cannot exceed cap
-    assert!(client.try_buy(&buyer, &1i128, &i128::MAX, &u64::MAX).is_err());
+    assert!(client
+        .try_buy(&buyer, &1i128, &i128::MAX, &u64::MAX)
+        .is_err());
 }
 
 #[test]
@@ -440,7 +450,7 @@ fn test_buy_and_sell_price_queries() {
     let price_before = client.get_price();
     let buy_price = client.get_buy_price();
     let sell_price = client.get_sell_price();
-    
+
     assert_eq!(price_before, buy_price);
     assert_eq!(buy_price, sell_price);
 
@@ -462,7 +472,7 @@ fn test_get_curve_state_complete() {
     client.buy(&buyer, &1000i128, &i128::MAX, &u64::MAX);
 
     let state = client.get_curve_info();
-    
+
     assert_eq!(state.fee_rate, 500);
     assert_eq!(state.cap, 10000);
     assert!(!state.graduated);
@@ -555,13 +565,14 @@ fn test_admin_fees_never_exceed_total_traded() {
 
     let mut total_bought = 0i128;
     for _ in 0..5 {
-        total_bought = total_bought + 1000;
+        total_bought += 1000;
         client.buy(&trader, &1000i128, &i128::MAX, &u64::MAX);
     }
 
     // Fees should be less than total amount bought (since they're deducted from costs, not added)
     let fees = client.get_admin_fees();
     assert!(fees >= 0);
+    assert!(fees < total_bought);
 }
 
 #[test]
@@ -572,13 +583,15 @@ fn test_graduated_flag_prevents_buys() {
     let buyer = generate_address(&env);
 
     client.set_cap(&1000i128);
-    
+
     // Fill the cap
     client.buy(&buyer, &1000i128, &i128::MAX, &u64::MAX);
     assert!(client.is_graduated());
 
     // Further buys should fail
-    assert!(client.try_buy(&buyer, &1i128, &i128::MAX, &u64::MAX).is_err());
+    assert!(client
+        .try_buy(&buyer, &1i128, &i128::MAX, &u64::MAX)
+        .is_err());
 }
 
 #[test]
