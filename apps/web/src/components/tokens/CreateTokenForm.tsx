@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { useWalletStore } from '../../hooks/useWallet'
@@ -9,16 +10,20 @@ import { useSoroban } from '../../hooks/useSoroban'
 import { useToastStore } from '../../hooks/useToast'
 import { FACTORY_CONTRACT_ID, CURVE_DEFAULTS } from '../../lib/constants'
 
-export interface CreateTokenFormProps {
-  onSuccess?: (result: { tokenId: string; curveId: string }) => void
-}
+const steps = [
+  { id: 1, label: 'Token Info' },
+  { id: 2, label: 'Supply & Decimals' },
+  { id: 3, label: 'Optional Details' },
+  { id: 4, label: 'Review' },
+]
 
-export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
+export function CreateTokenForm() {
   const router = useRouter()
   const { isConnected, address, connect, network } = useWalletStore()
   const { addToast, updateToast } = useToastStore()
   const soroban = useSoroban()
 
+  const [currentStep, setCurrentStep] = useState(1)
   const [name, setName] = useState('')
   const [symbol, setSymbol] = useState('')
   const [maxSupply, setMaxSupply] = useState('1000000000')
@@ -26,7 +31,6 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
   const [description, setDescription] = useState('')
   const [imageUri, setImageUri] = useState('')
   const [touched, setTouched] = useState<Record<string, boolean>>({})
-
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [txError, setTxError] = useState<string | null>(null)
   const [createdResult, setCreatedResult] = useState<{
@@ -36,82 +40,45 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
 
   const errors = useMemo(() => {
     const errs: Record<string, string> = {}
-
-    // Name validation
     const trimmedName = name.trim()
-    if (!trimmedName) {
-      errs.name = 'Token name is required'
-    } else if (trimmedName.length < 1 || trimmedName.length > 60) {
-      errs.name = 'Token name must be between 1 and 60 characters'
-    }
+    if (!trimmedName) errs.name = 'Token name is required'
+    else if (trimmedName.length > 60) errs.name = 'Max 60 characters'
 
-    // Symbol validation: 1-12 uppercase alphanumeric characters
     const trimmedSymbol = symbol.trim().toUpperCase()
-    if (!trimmedSymbol) {
-      errs.symbol = 'Token symbol is required'
-    } else if (!/^[A-Z0-9]{1,12}$/.test(trimmedSymbol)) {
-      errs.symbol = 'Symbol must contain only alphanumeric characters (1-12 chars)'
-    }
+    if (!trimmedSymbol) errs.symbol = 'Symbol is required'
+    else if (!/^[A-Z0-9]{1,12}$/.test(trimmedSymbol))
+      errs.symbol = '1-12 alphanumeric characters'
 
-    // Max Supply validation: integer > 0
-    const trimmedSupply = maxSupply.trim()
-    if (!trimmedSupply) {
-      errs.maxSupply = 'Max supply is required'
-    } else {
-      const numSupply = Number(trimmedSupply)
-      if (isNaN(numSupply) || !Number.isInteger(numSupply) || numSupply <= 0) {
-        errs.maxSupply = 'Max supply must be greater than 0'
-      }
-    }
+    const numSupply = Number(maxSupply.trim())
+    if (!maxSupply.trim()) errs.maxSupply = 'Required'
+    else if (isNaN(numSupply) || !Number.isInteger(numSupply) || numSupply <= 0)
+      errs.maxSupply = 'Must be > 0'
 
-    // Decimals validation: integer 0-18
-    const trimmedDecimals = decimals.trim()
-    if (!trimmedDecimals) {
-      errs.decimals = 'Decimals is required'
-    } else {
-      const numDecimals = Number(trimmedDecimals)
-      if (isNaN(numDecimals) || !Number.isInteger(numDecimals) || numDecimals < 0 || numDecimals > 18) {
-        errs.decimals = 'Decimals must be an integer between 0 and 18'
-      }
-    }
+    const numDec = Number(decimals.trim())
+    if (!decimals.trim()) errs.decimals = 'Required'
+    else if (isNaN(numDec) || numDec < 0 || numDec > 18)
+      errs.decimals = '0-18'
 
-    // Description validation: max 500 characters
-    if (description.length > 500) {
-      errs.description = 'Description must not exceed 500 characters'
-    }
+    if (description.length > 500) errs.description = 'Max 500 characters'
 
-    // Image URI validation: must be https:// or ipfs:// if provided
     const trimmedUri = imageUri.trim()
-    if (trimmedUri) {
-      if (!trimmedUri.startsWith('https://') && !trimmedUri.startsWith('ipfs://')) {
-        errs.imageUri = 'Image URI must start with https:// or ipfs://'
-      }
-    }
+    if (trimmedUri && !trimmedUri.startsWith('https://') && !trimmedUri.startsWith('ipfs://'))
+      errs.imageUri = 'Must start with https:// or ipfs://'
 
     return errs
   }, [name, symbol, maxSupply, decimals, description, imageUri])
-
-  const isValid = Object.keys(errors).length === 0
 
   const markTouched = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const canProceed = (step: number) => {
+    if (step === 1) return !errors.name && !errors.symbol && name.trim() && symbol.trim()
+    if (step === 2) return !errors.maxSupply && !errors.decimals && maxSupply.trim() && decimals.trim()
+    return true
+  }
 
-    // Mark all required fields as touched
-    setTouched({
-      name: true,
-      symbol: true,
-      maxSupply: true,
-      decimals: true,
-      description: true,
-      imageUri: true,
-    })
-
-    if (!isValid) return
-
+  const handleSubmit = async () => {
     if (!isConnected || !address) {
       await connect()
       return
@@ -123,14 +90,12 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
     const pendingToastId = addToast({
       type: 'pending',
       title: 'Forging Token',
-      message: `Creating $${symbol.trim().toUpperCase()} bonding curve on Soroban...`,
+      message: `Creating $${symbol.trim().toUpperCase()} on Soroban...`,
     })
 
     try {
       const factoryId = FACTORY_CONTRACT_ID || 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM'
-
       const params = {
-        // Placeholder contract IDs - in production these would be pre-deployed
         token_id: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM',
         curve_id: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM',
         name: name.trim(),
@@ -147,42 +112,41 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
       }
 
       const freighter = await import('@stellar/freighter-api')
-
-      const result = await soroban.createToken(factoryId, params, {
-        sourceAccount: address,
-        signers: [
-          async (xdr: string) => {
-            const signResult = await freighter.signTransaction(xdr)
-            if (signResult.error) {
-              throw new Error(signResult.error.message || 'Transaction signing rejected')
+      const result = await soroban
+        .createToken(factoryId, params, {
+          sourceAccount: address,
+          signers: [
+            async (xdr: string) => {
+              const signResult = await freighter.signTransaction(xdr)
+              if (signResult.error) throw new Error(signResult.error.message || 'Signing rejected')
+              return signResult.signedTxXdr
+            },
+          ],
+        })
+        .catch((err) => {
+          if (err.message?.includes('not yet wired') || !FACTORY_CONTRACT_ID) {
+            return {
+              tokenId: `C${Array.from({ length: 55 }, () => Math.floor(Math.random() * 36).toString(36).toUpperCase()).join('')}`,
+              curveId: `C${Array.from({ length: 55 }, () => Math.floor(Math.random() * 36).toString(36).toUpperCase()).join('')}`,
             }
-            return signResult.signedTxXdr
-          },
-        ],
-      }).catch((err) => {
-        const fallbackTokenId = `C${Array.from({ length: 55 }, () => Math.floor(Math.random() * 36).toString(36).toUpperCase()).join('')}`
-        const fallbackCurveId = `C${Array.from({ length: 55 }, () => Math.floor(Math.random() * 36).toString(36).toUpperCase()).join('')}`
-        if (err.message?.includes('not yet wired') || !FACTORY_CONTRACT_ID) {
-          return { tokenId: fallbackTokenId, curveId: fallbackCurveId }
-        }
-        throw err
-      })
+          }
+          throw err
+        })
 
       updateToast(pendingToastId, {
         type: 'success',
-        title: 'Token Forged Successfully!',
-        message: `$${params.symbol} is now live on Stellar Soroban.`,
+        title: 'Token Forged!',
+        message: `$${params.symbol} is now live.`,
         explorerUrl: `https://stellar.expert/explorer/${network}/contract/${result.tokenId}`,
         durationMs: 6000,
       })
 
       setCreatedResult(result)
-      onSuccess?.(result)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to create token transaction'
+      const msg = err instanceof Error ? err.message : 'Failed to create token'
       updateToast(pendingToastId, {
         type: 'error',
-        title: 'Token Creation Failed',
+        title: 'Creation Failed',
         message: msg,
         durationMs: 6000,
       })
@@ -194,133 +158,237 @@ export function CreateTokenForm({ onSuccess }: CreateTokenFormProps) {
 
   if (createdResult) {
     return (
-      <div className="bg-[var(--forgex-surface)] rounded-lg border border-emerald-500/30 p-6 text-center space-y-4">
-        <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-card rounded-lg border border-success/30 p-8 text-center space-y-4"
+      >
+        <div className="w-12 h-12 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="text-xl font-bold text-emerald-400">Token Created Successfully!</h3>
-        <p className="text-sm text-[var(--forgex-text-muted)]">
-          Your token is now live on Stellar Soroban with an exponential bonding curve.
+        <h3 className="text-lg font-semibold text-foreground">Token Created!</h3>
+        <p className="text-sm text-muted-foreground">
+          Your token is live on Stellar Soroban with a bonding curve.
         </p>
-        <div className="bg-[var(--forgex-bg)] p-3 rounded text-xs font-mono break-all text-left space-y-1">
-          <div><span className="text-[var(--forgex-text-muted)]">Token ID:</span> {createdResult.tokenId}</div>
-          <div><span className="text-[var(--forgex-text-muted)]">Curve ID:</span> {createdResult.curveId}</div>
+        <div className="bg-muted p-3 rounded-md text-xs font-mono break-all text-left space-y-1">
+          <div><span className="text-muted-foreground">Token:</span> {createdResult.tokenId}</div>
+          <div><span className="text-muted-foreground">Curve:</span> {createdResult.curveId}</div>
         </div>
         <div className="flex justify-center gap-3 pt-2">
           <Button onClick={() => router.push(`/token/${createdResult.tokenId}`)}>
-            View Token & Trade
+            View & Trade
           </Button>
-          <Button variant="secondary" onClick={() => { setCreatedResult(null); setName(''); setSymbol(''); }}>
+          <Button variant="secondary" onClick={() => { setCreatedResult(null); setName(''); setSymbol(''); setCurrentStep(1) }}>
             Create Another
           </Button>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="bg-[var(--forgex-surface)] rounded-lg border border-[var(--forgex-border)] p-6 space-y-4">
+    <div className="space-y-6">
+      {/* Step Indicator */}
+      <div className="flex items-center gap-2">
+        {steps.map((step, i) => (
+          <div key={step.id} className="flex items-center gap-2 flex-1">
+            <div className="flex items-center gap-2 flex-1">
+              <div
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors ${
+                  currentStep > step.id
+                    ? 'bg-primary text-primary-foreground'
+                    : currentStep === step.id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground border border-border'
+                }`}
+              >
+                {currentStep > step.id ? '✓' : step.id}
+              </div>
+              <span
+                className={`text-xs font-medium hidden sm:block ${
+                  currentStep >= step.id ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+            {i < steps.length - 1 && (
+              <div className={`h-px flex-1 ${currentStep > step.id ? 'bg-primary' : 'bg-border'}`} />
+            )}
+          </div>
+        ))}
+      </div>
+
       {txError && (
-        <div role="alert" className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded text-sm">
+        <div role="alert" className="bg-destructive/10 border border-destructive/20 text-destructive p-3 rounded-md text-sm">
           {txError}
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          label="Token Name *"
-          placeholder="e.g. Stellar Doge"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={() => markTouched('name')}
-          error={touched.name ? errors.name : undefined}
-          required
-        />
-        <Input
-          label="Token Symbol *"
-          placeholder="e.g. DOGE"
-          value={symbol}
-          onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-          onBlur={() => markTouched('symbol')}
-          error={touched.symbol ? errors.symbol : undefined}
-          required
-        />
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentStep}
+          initial={{ opacity: 0, x: 8 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -8 }}
+          transition={{ duration: 0.2 }}
+          className="bg-card rounded-lg border border-border p-6"
+        >
+          {currentStep === 1 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Token Identity</h3>
+                <p className="text-xs text-muted-foreground mt-1">Choose a name and ticker for your token.</p>
+              </div>
+              <Input
+                label="Token Name *"
+                placeholder="e.g. Stellar Doge"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={() => markTouched('name')}
+                error={touched.name ? errors.name : undefined}
+              />
+              <Input
+                label="Token Symbol *"
+                placeholder="e.g. DOGE"
+                value={symbol}
+                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                onBlur={() => markTouched('symbol')}
+                error={touched.symbol ? errors.symbol : undefined}
+              />
+            </div>
+          )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          label="Max Supply *"
-          type="number"
-          placeholder="1000000000"
-          value={maxSupply}
-          onChange={(e) => setMaxSupply(e.target.value)}
-          onBlur={() => markTouched('maxSupply')}
-          error={touched.maxSupply ? errors.maxSupply : undefined}
-          required
-        />
-        <Input
-          label="Decimals *"
-          type="number"
-          placeholder="7"
-          value={decimals}
-          onChange={(e) => setDecimals(e.target.value)}
-          onBlur={() => markTouched('decimals')}
-          error={touched.decimals ? errors.decimals : undefined}
-          required
-        />
-      </div>
+          {currentStep === 2 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Supply & Decimals</h3>
+                <p className="text-xs text-muted-foreground mt-1">Configure the total supply and decimal precision.</p>
+              </div>
+              <Input
+                label="Max Supply *"
+                type="number"
+                placeholder="1000000000"
+                value={maxSupply}
+                onChange={(e) => setMaxSupply(e.target.value)}
+                onBlur={() => markTouched('maxSupply')}
+                error={touched.maxSupply ? errors.maxSupply : undefined}
+              />
+              <Input
+                label="Decimals *"
+                type="number"
+                placeholder="7"
+                value={decimals}
+                onChange={(e) => setDecimals(e.target.value)}
+                onBlur={() => markTouched('decimals')}
+                error={touched.decimals ? errors.decimals : undefined}
+              />
+              <div className="bg-muted/50 border border-border rounded-md p-3 text-xs text-muted-foreground">
+                <p><strong className="text-foreground">Bonding Curve:</strong> Initial price {CURVE_DEFAULTS.initialPrice} XLM, steepness {CURVE_DEFAULTS.steepness}, reserve target {CURVE_DEFAULTS.reserveTarget} XLM.</p>
+              </div>
+            </div>
+          )}
 
-      <Input
-        label="Image / Icon URL"
-        placeholder="https://... or ipfs://..."
-        value={imageUri}
-        onChange={(e) => setImageUri(e.target.value)}
-        onBlur={() => markTouched('imageUri')}
-        error={touched.imageUri ? errors.imageUri : undefined}
-      />
+          {currentStep === 3 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Optional Details</h3>
+                <p className="text-xs text-muted-foreground mt-1">Add an icon and description for your token.</p>
+              </div>
+              <Input
+                label="Image URL"
+                placeholder="https://... or ipfs://..."
+                value={imageUri}
+                onChange={(e) => setImageUri(e.target.value)}
+                onBlur={() => markTouched('imageUri')}
+                error={touched.imageUri ? errors.imageUri : undefined}
+              />
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label htmlFor="token-description" className="text-sm font-medium text-muted-foreground">
+                    Description
+                  </label>
+                  <span className="text-xs text-muted-foreground">{description.length}/500</span>
+                </div>
+                <textarea
+                  id="token-description"
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-md bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                  placeholder="Tell traders about your token..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  onBlur={() => markTouched('description')}
+                />
+                {touched.description && errors.description && (
+                  <p className="text-xs text-destructive">{errors.description}</p>
+                )}
+              </div>
+            </div>
+          )}
 
-      <div className="space-y-1">
-        <div className="flex justify-between items-center">
-          <label htmlFor="token-description" className="block text-xs font-medium text-[var(--forgex-text)]">
-            Description
-          </label>
-          <span className="text-xs text-[var(--forgex-text-muted)]">
-            {description.length}/500
-          </span>
-        </div>
-        <textarea
-          id="token-description"
-          rows={3}
-          className={`w-full px-3 py-2 rounded-lg bg-[var(--forgex-bg)] border ${
-            touched.description && errors.description ? 'border-red-500' : 'border-[var(--forgex-border)]'
-          } text-[var(--forgex-text)] placeholder-[var(--forgex-text-muted)] focus:outline-none focus:border-[var(--forgex-primary)] resize-none text-sm`}
-          placeholder="Tell traders about your token..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          onBlur={() => markTouched('description')}
-        />
-        {touched.description && errors.description && (
-          <p className="text-xs text-red-500">{errors.description}</p>
-        )}
-      </div>
+          {currentStep === 4 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Review & Launch</h3>
+                <p className="text-xs text-muted-foreground mt-1">Verify your token details before forging.</p>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Name</span>
+                  <span className="font-medium text-foreground">{name}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Symbol</span>
+                  <span className="font-medium text-foreground">${symbol.toUpperCase()}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Max Supply</span>
+                  <span className="font-mono font-medium text-foreground">{maxSupply}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Decimals</span>
+                  <span className="font-mono font-medium text-foreground">{decimals}</span>
+                </div>
+                {imageUri && (
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Image</span>
+                    <span className="font-mono text-xs text-foreground truncate max-w-[200px]">{imageUri}</span>
+                  </div>
+                )}
+                {description && (
+                  <div className="py-2">
+                    <span className="text-muted-foreground">Description</span>
+                    <p className="text-foreground mt-1">{description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
 
-      <div className="pt-2">
-        {!isConnected ? (
-          <Button type="button" className="w-full" onClick={connect}>
-            Connect Wallet to Create Token
+      {/* Navigation */}
+      <div className="flex justify-between">
+        {currentStep > 1 ? (
+          <Button variant="secondary" onClick={() => setCurrentStep((s) => s - 1)}>
+            Back
           </Button>
         ) : (
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isSubmitting || !isValid}
-          >
-            {isSubmitting ? 'Forging Token on Soroban…' : 'Create Token'}
+          <div />
+        )}
+
+        {currentStep < 4 ? (
+          <Button onClick={() => setCurrentStep((s) => s + 1)} disabled={!canProceed(currentStep)}>
+            Continue
+          </Button>
+        ) : (
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? 'Forging...' : !isConnected ? 'Connect Wallet' : 'Launch Token'}
           </Button>
         )}
       </div>
-    </form>
+    </div>
   )
 }
