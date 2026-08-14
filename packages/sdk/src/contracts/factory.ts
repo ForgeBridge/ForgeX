@@ -41,7 +41,7 @@ export class FactoryClient {
     if (!retval || retval.switch() === xdr.ScValType.scvVoid()) {
       return []
     }
-    return (scValToNative(retval) as unknown[][]).map((row) =>
+    return (scValToNative(retval) as unknown[]).map((row) =>
       this.decodeTokenInfo(row),
     )
   }
@@ -51,7 +51,7 @@ export class FactoryClient {
     options: ReadOptions = {},
   ): Promise<TokenInfo> {
     const retval = await this.read('get_token', [address(tokenId)], options)
-    return retval ? this.decodeTokenInfo(scValToNative(retval) as unknown[]) : this.emptyTokenInfo()
+    return retval ? this.decodeTokenInfo(scValToNative(retval)) : this.emptyTokenInfo()
   }
 
   async getTokenCount(options: ReadOptions = {}): Promise<string> {
@@ -103,18 +103,37 @@ export class FactoryClient {
     ])
   }
 
-  private decodeTokenInfo(native: unknown[]): TokenInfo {
+  private decodeTokenInfo(native: unknown): TokenInfo {
+    // Newer factory contracts return each token as a ScVal map keyed by field
+    // name. Fall back to the older positional-array layout for compatibility.
+    if (native && typeof native === 'object' && !Array.isArray(native)) {
+      const rec = native as Record<string, unknown>
+      return {
+        token_id: String(rec.token_id ?? ''),
+        curve_id: String(rec.curve_id ?? ''),
+        creator: String(rec.creator ?? ''),
+        name: String(rec.name ?? ''),
+        symbol: String(rec.symbol ?? ''),
+        decimals: Number(rec.decimals ?? 0),
+        max_supply: String(rec.max_supply ?? '0'),
+        image_uri: String(rec.image_uri ?? ''),
+        description: String(rec.description ?? ''),
+        created_at: Number(rec.created_at ?? 0),
+      }
+    }
+
+    const row = (native ?? []) as unknown[]
     return {
-      token_id: String(native[0]),
-      curve_id: String(native[1]),
-      creator: String(native[2]),
-      name: String(native[3]),
-      symbol: String(native[4]),
-      decimals: Number(native[5]),
-      max_supply: String(native[6]),
-      image_uri: String(native[7]),
-      description: String(native[8]),
-      created_at: Number(native[9]),
+      token_id: String(row[0] ?? ''),
+      curve_id: String(row[1] ?? ''),
+      creator: String(row[2] ?? ''),
+      name: String(row[3] ?? ''),
+      symbol: String(row[4] ?? ''),
+      decimals: Number(row[5] ?? 0),
+      max_supply: String(row[6] ?? '0'),
+      image_uri: String(row[7] ?? ''),
+      description: String(row[8] ?? ''),
+      created_at: Number(row[9] ?? 0),
     }
   }
 

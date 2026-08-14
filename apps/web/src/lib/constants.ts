@@ -11,8 +11,14 @@ export const NETWORKS = {
 
 export const DEFAULT_NETWORK = 'testnet'
 
-export const FACTORY_CONTRACT_ID = process.env.NEXT_PUBLIC_FACTORY_CONTRACT_ID || ''
-export const BONDING_CURVE_CONTRACT_ID = process.env.NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID || ''
+// Public testnet deployment (see README). Used as fallback so the app works
+// without env files; NEXT_PUBLIC_* overrides take precedence when set.
+export const FACTORY_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_FACTORY_CONTRACT_ID ||
+  'CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP'
+export const BONDING_CURVE_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID ||
+  'CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN'
 
 export const IPFS_GATEWAY = process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://gateway.pinata.cloud'
 
