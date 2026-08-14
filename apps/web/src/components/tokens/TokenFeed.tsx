@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { TokenCard } from './TokenCard'
 import { TokenFeedSkeleton } from './TokenCardSkeleton'
 import { useTokenStore, TokenItem } from '../../hooks/useToken'
@@ -25,8 +26,15 @@ export function TokenFeed({
   pageSize = 6,
   onRetry: customRetry,
 }: TokenFeedProps) {
-  const { tokens: storeTokens, loading: storeLoading, error: storeError, fetchTokens, retry } = useTokenStore()
-  const isLoading = customLoading !== undefined ? customLoading : storeLoading
+  const {
+    tokens: storeTokens,
+    loading: storeLoading,
+    error: storeError,
+    fetchTokens,
+    retry,
+  } = useTokenStore()
+  const isLoading =
+    customLoading !== undefined ? customLoading : storeLoading
   const error = customError !== undefined ? customError : storeError
   const handleRetry = customRetry || retry
 
@@ -39,14 +47,13 @@ export function TokenFeed({
     fetchTokens()
   }, [fetchTokens])
 
-  // Reset page when search or sort changes
   useEffect(() => {
     setPage(1)
   }, [searchQuery, sortBy])
 
-  const sourceTokens = customTokens !== undefined ? customTokens : storeTokens
+  const sourceTokens =
+    customTokens !== undefined ? customTokens : storeTokens
 
-  // Search and sort filtering
   const filteredTokens = useMemo(() => {
     let result = [...sourceTokens]
 
@@ -80,7 +87,6 @@ export function TokenFeed({
     return result
   }, [sourceTokens, searchQuery, sortBy])
 
-  // Pagination slice
   const paginatedTokens = useMemo(() => {
     return filteredTokens.slice(0, page * pageSize)
   }, [filteredTokens, page, pageSize])
@@ -114,7 +120,7 @@ export function TokenFeed({
     return (
       <EmptyState
         title="No Tokens Found"
-        description="No bonding curve tokens have been forged on this network yet. Launch the very first one!"
+        description="No bonding curve tokens have been forged on this network yet. Launch the first one!"
         actionLabel="Create Token"
         actionHref="/create"
       />
@@ -122,30 +128,29 @@ export function TokenFeed({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Search & Sort Controls Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        {/* Search Input */}
+    <div className="space-y-4">
+      {/* Search & Sort */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tokens by name, symbol, or contract address…"
+            placeholder="Search by name, symbol, or address..."
             aria-label="Search tokens"
-            className="w-full px-4 py-2.5 pl-10 pr-9 rounded-xl bg-[var(--forgex-surface)] border border-[var(--forgex-border)] text-sm text-[var(--forgex-text)] placeholder-[var(--forgex-text-muted)] focus:outline-none focus:border-[var(--forgex-primary)] transition-colors"
+            className="w-full h-9 px-3 pl-9 pr-8 rounded-md bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
           />
           <svg
-            className="w-4 h-4 text-[var(--forgex-text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2"
+            className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            strokeWidth={1.5}
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
             />
           </svg>
           {searchQuery && (
@@ -153,86 +158,88 @@ export function TokenFeed({
               type="button"
               onClick={() => setSearchQuery('')}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--forgex-text-muted)] hover:text-[var(--forgex-text)] p-1"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground p-0.5"
             >
               ✕
             </button>
           )}
         </div>
 
-        {/* Sort Select */}
         <div className="flex items-center gap-2">
-          <label htmlFor="token-sort" className="text-xs text-[var(--forgex-text-muted)] font-medium whitespace-nowrap">
-            Sort by:
+          <label
+            htmlFor="token-sort"
+            className="text-xs text-muted-foreground font-medium whitespace-nowrap"
+          >
+            Sort:
           </label>
           <select
             id="token-sort"
             aria-label="Sort tokens"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="px-3 py-2 rounded-xl bg-[var(--forgex-surface)] border border-[var(--forgex-border)] text-xs text-[var(--forgex-text)] focus:outline-none focus:border-[var(--forgex-primary)] cursor-pointer"
+            className="h-9 px-3 rounded-md bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
           >
-            <option value="marketCap">Highest Market Cap</option>
-            <option value="newest">Recently Created</option>
-            <option value="price">Highest Price</option>
+            <option value="marketCap">Market Cap</option>
+            <option value="newest">Newest</option>
+            <option value="price">Price</option>
           </select>
         </div>
       </div>
 
-      {/* Grid or Filter Empty State */}
       {filteredTokens.length === 0 ? (
-        <div className="text-center py-16 px-4 bg-[var(--forgex-surface)] rounded-2xl border border-[var(--forgex-border)] space-y-4">
-          <p className="text-lg font-semibold text-[var(--forgex-text)]">
-            No matching tokens found
+        <div className="text-center py-16 bg-card rounded-lg border border-border">
+          <p className="text-sm font-medium text-foreground">
+            No matching tokens
           </p>
-          <p className="text-sm text-[var(--forgex-text-muted)] max-w-sm mx-auto">
-            We could not find any tokens matching &quot;{searchQuery}&quot;. Try adjusting your search query or sorting options.
+          <p className="text-xs text-muted-foreground mt-1">
+            Try adjusting your search or filters.
           </p>
           <button
             type="button"
             onClick={() => setSearchQuery('')}
-            className="px-4 py-2 rounded-lg bg-[var(--forgex-primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
+            className="mt-4 px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary-hover transition-colors"
           >
-            Clear Filters
+            Clear Search
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy={isLoading}>
-            {paginatedTokens.map((token) => (
-              <TokenCard key={token.symbol} {...token} />
+        <div className="space-y-4">
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            aria-busy={isLoading}
+          >
+            {paginatedTokens.map((token, i) => (
+              <motion.div
+                key={token.symbol}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+              >
+                <TokenCard {...token} />
+              </motion.div>
             ))}
           </div>
 
-          {/* Pagination Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[var(--forgex-border)]/50 text-xs text-[var(--forgex-text-muted)]">
+          <div className="flex items-center justify-between pt-3 border-t border-border text-xs text-muted-foreground">
             <span>
-              Showing {paginatedTokens.length} of {filteredTokens.length} tokens
+              Showing {paginatedTokens.length} of {filteredTokens.length}
             </span>
-
             {hasMore && (
               <button
                 type="button"
                 onClick={handleLoadMore}
                 disabled={loadingMore}
-                aria-label="Load more tokens"
-                className="px-5 py-2.5 rounded-xl bg-[var(--forgex-surface)] border border-[var(--forgex-border)] text-xs font-semibold text-[var(--forgex-text)] hover:border-[var(--forgex-primary)] hover:text-[var(--forgex-primary)] transition-all flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2 rounded-md border border-border text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {loadingMore ? (
                   <>
                     <Spinner size="sm" />
-                    <span>Loading…</span>
+                    <span>Loading...</span>
                   </>
                 ) : (
-                  <span>Load More Tokens</span>
+                  'Load More'
                 )}
               </button>
-            )}
-
-            {!hasMore && filteredTokens.length > pageSize && (
-              <span className="text-[var(--forgex-text-muted)] italic">
-                All tokens loaded
-              </span>
             )}
           </div>
         </div>

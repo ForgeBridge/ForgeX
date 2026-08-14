@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { TokenAvatar } from './TokenAvatar'
 
 export interface TokenCardProps {
@@ -13,33 +14,50 @@ export interface TokenCardProps {
   tokenId?: string
 }
 
-export function TokenCard({ name, symbol, marketCap, price, imageUri, tokenId }: TokenCardProps) {
+export function TokenCard({
+  name,
+  symbol,
+  marketCap,
+  price,
+  imageUri,
+  tokenId,
+}: TokenCardProps) {
   const href = tokenId ? `/token/${tokenId}` : `/token/${symbol.toLowerCase()}`
 
   return (
     <Link href={href} className="block group">
-      <div className="bg-[var(--forgex-surface)] rounded-xl border border-[var(--forgex-border)] p-5 hover:border-[var(--forgex-primary)] transition-all duration-200 hover:shadow-lg group-hover:scale-[1.01]">
-        <div className="flex items-center gap-3.5 mb-4">
+      <motion.div
+        whileHover={{ y: -2 }}
+        transition={{ duration: 0.2 }}
+        className="bg-card rounded-lg border border-border p-4 hover:border-primary/30 transition-colors"
+      >
+        <div className="flex items-center gap-3 mb-3">
           <TokenAvatar symbol={symbol} imageUri={imageUri} size="md" />
           <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-base truncate text-[var(--forgex-text)] group-hover:text-[var(--forgex-primary)] transition-colors">
+            <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
               {name}
             </h3>
-            <span className="text-xs font-medium text-[var(--forgex-text-muted)]">${symbol}</span>
+            <span className="text-xs text-muted-foreground font-mono">
+              ${symbol}
+            </span>
           </div>
         </div>
 
-        <div className="space-y-1.5 text-xs">
-          <div className="flex justify-between py-1 border-b border-[var(--forgex-border)]/50">
-            <span className="text-[var(--forgex-text-muted)]">Market Cap</span>
-            <span className="font-semibold font-mono text-[var(--forgex-text)]">{marketCap} XLM</span>
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between py-1.5 border-t border-border">
+            <span className="text-muted-foreground">Market Cap</span>
+            <span className="font-semibold font-mono text-foreground">
+              {marketCap} XLM
+            </span>
           </div>
-          <div className="flex justify-between pt-1">
-            <span className="text-[var(--forgex-text-muted)]">Price</span>
-            <span className="font-semibold font-mono text-[var(--forgex-primary)]">{price} XLM</span>
+          <div className="flex justify-between pb-1">
+            <span className="text-muted-foreground">Price</span>
+            <span className="font-semibold font-mono text-primary">
+              {price} XLM
+            </span>
           </div>
         </div>
-      </div>
+      </motion.div>
     </Link>
   )
 }
