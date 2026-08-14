@@ -78,7 +78,7 @@ export default function RootLayout({
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <a
-                      href="https://github.com/forgex"
+                      href="https://github.com/ForgeBridge/ForgeX"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:text-foreground transition-colors"
