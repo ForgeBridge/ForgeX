@@ -5,6 +5,9 @@ import { NETWORKS, DEFAULT_NETWORK } from '../lib/constants'
 
 export type SupportedNetwork = 'testnet' | 'mainnet'
 
+const FREIGHTER_NOT_FOUND_MESSAGE =
+  'Freighter wallet not found. Install the extension or open ForgeX in the Freighter mobile app browser.'
+
 /** Freighter API error shape */
 interface FreighterApiError {
   code: number
@@ -119,12 +122,24 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
     try {
       const freighter = await import('@stellar/freighter-api')
+      const win = getWalletWindow()
 
-      const connectionResult = await freighter.isConnected()
-      if (connectionResult.error || !connectionResult.isConnected) {
+      // `isConnected()` only reports the desktop extension. Freighter Mobile's
+      // in-app browser injects `window.freighterApi` (and `window.stellar`),
+      // so those must be treated as "wallet present" too. Otherwise the
+      // connect flow wrongly asks mobile users to install the extension.
+      const connectionResult = await freighter.isConnected().catch(() => null)
+      const walletPresent = Boolean(
+        connectionResult?.isConnected ||
+          win.freighter !== undefined ||
+          win.freighterApi ||
+          win.stellar?.platform,
+      )
+
+      if (!walletPresent) {
         set({
           isConnecting: false,
-          error: 'Freighter wallet extension not found. Please install it from the Chrome Web Store.',
+          error: FREIGHTER_NOT_FOUND_MESSAGE,
         })
         return
       }
@@ -198,7 +213,7 @@ function sanitizeWalletError(message: string): string {
     return 'Connection request was rejected by user'
   }
   if (lower.includes('not found') || lower.includes('not installed')) {
-    return 'Freighter wallet extension not found. Please install it from the Chrome Web Store.'
+    return FREIGHTER_NOT_FOUND_MESSAGE
   }
   if (lower.includes('network')) {
     return 'Network error while connecting to wallet. Please try again.'
@@ -208,4 +223,15 @@ function sanitizeWalletError(message: string): string {
   }
 
   return 'Failed to connect wallet. Please try again.'
+}
+
+interface FreighterInjection {
+  freighter?: unknown
+  freighterApi?: unknown
+  stellar?: { platform?: string }
+}
+
+function getWalletWindow(): FreighterInjection {
+  if (typeof window === 'undefined') return {}
+  return window as unknown as FreighterInjection
 }
