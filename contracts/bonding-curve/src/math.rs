@@ -51,17 +51,17 @@ fn exp_approx(x: i128) -> i128 {
     if x == 0 {
         return SCALE;
     }
-    
+
     // For very small values, return SCALE (prevents precision loss)
     if x.abs() < SCALE / 10_000_000 {
         return SCALE;
     }
-    
+
     // Taylor series: e^x = 1 + x + x²/2! + x³/3! + ...
     // Using 20 terms for precision, with safety checks for overflow
     let mut result = SCALE;
     let mut term = SCALE;
-    
+
     for i in 1..=20 {
         // Calculate next term: term * x / (SCALE * i)
         term = match term.checked_mul(x) {
@@ -71,7 +71,7 @@ fn exp_approx(x: i128) -> i128 {
                 break;
             }
         };
-        
+
         // Add to result with overflow check
         result = match result.checked_add(term) {
             Some(r) => r,
@@ -80,13 +80,13 @@ fn exp_approx(x: i128) -> i128 {
                 break;
             }
         };
-        
+
         // Early exit if term becomes negligibly small
         if term == 0 {
             break;
         }
     }
-    
+
     result
 }
 

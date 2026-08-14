@@ -98,7 +98,11 @@ impl BondingCurveContract {
             panic!("bonding curve: buy amount must be positive");
         }
         let min_buy: i128 = env.storage().instance().get(&"min_buy").unwrap_or(0);
-        let max_buy: i128 = env.storage().instance().get(&"max_buy").unwrap_or(i128::MAX);
+        let max_buy: i128 = env
+            .storage()
+            .instance()
+            .get(&"max_buy")
+            .unwrap_or(i128::MAX);
         if amount_out < min_buy {
             panic!("bonding curve: buy amount below minimum");
         }
@@ -197,7 +201,11 @@ impl BondingCurveContract {
             panic!("bonding curve: sell amount must be positive");
         }
         let min_sell: i128 = env.storage().instance().get(&"min_sell").unwrap_or(0);
-        let max_sell: i128 = env.storage().instance().get(&"max_sell").unwrap_or(i128::MAX);
+        let max_sell: i128 = env
+            .storage()
+            .instance()
+            .get(&"max_sell")
+            .unwrap_or(i128::MAX);
         if amount_in < min_sell {
             panic!("bonding curve: sell amount below minimum");
         }
@@ -380,14 +388,12 @@ impl BondingCurveContract {
     pub fn set_fee_rate(env: Env, rate: i128) {
         let admin: Address = env.storage().instance().get(&"admin").unwrap();
         admin.require_auth();
-        if rate < 0 || rate > 10000 {
+        if !(0..=10000).contains(&rate) {
             panic!("bonding curve: fee rate out of bounds");
         }
         env.storage().instance().set(&"fee_rate", &rate);
-        env.events().publish(
-            (String::from_str(&env, "SetFeeRate"), admin),
-            (rate,),
-        );
+        env.events()
+            .publish((String::from_str(&env, "SetFeeRate"), admin), (rate,));
     }
 
     /// Sets the minimum and maximum buy amounts. Admin only. Panics if the
@@ -438,10 +444,8 @@ impl BondingCurveContract {
             panic!("bonding curve: cap cannot be below tokens sold");
         }
         env.storage().instance().set(&"cap", &cap);
-        env.events().publish(
-            (String::from_str(&env, "SetCap"), admin),
-            (cap,),
-        );
+        env.events()
+            .publish((String::from_str(&env, "SetCap"), admin), (cap,));
     }
 
     /// Returns whether the curve has graduated (reached its cap). Publicly
@@ -458,7 +462,8 @@ impl BondingCurveContract {
         if market_cap == 0 {
             return 0;
         }
-        reserve.checked_mul(10_000_000)
+        reserve
+            .checked_mul(10_000_000)
             .unwrap_or_else(|| panic!("bonding curve: reserve ratio overflow"))
             / market_cap
     }

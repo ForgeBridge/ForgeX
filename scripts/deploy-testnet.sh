@@ -16,8 +16,8 @@ echo "Building contracts..."
 
 echo "Deploying Factory contract..."
 FACTORY_ID=$(soroban contract deploy \
-  --wasm target/release/forgex_factory.wasm \
- --rpc-url "$SOROBAN_RPC_URL" \
+  --wasm target/wasm32v1-none/release/forgex_factory.wasm \
+  --rpc-url "$SOROBAN_RPC_URL" \
   --network-passphrase "$SOROBAN_NETWORK_PASSPHRASE" \
   --source-account "$SOROBAN_ACCOUNT")
 echo "Factory contract ID: $FACTORY_ID"
@@ -33,7 +33,7 @@ soroban contract invoke \
 
 echo "Deploying Bonding Curve contract..."
 BONDING_CURVE_ID=$(soroban contract deploy \
-  --wasm target/release/forgex_bonding_curve.wasm \
+  --wasm target/wasm32v1-none/release/forgex_bonding_curve.wasm \
   --rpc-url "$SOROBAN_RPC_URL" \
   --network-passphrase "$SOROBAN_NETWORK_PASSPHRASE" \
   --source-account "$SOROBAN_ACCOUNT")

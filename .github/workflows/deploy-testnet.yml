@@ -22,8 +22,10 @@ jobs:
           toolchain: stable
       - name: Install soroban CLI
         run: cargo install soroban-cli
+      - name: Add wasm target
+        run: rustup target add wasm32v1-none
       - name: Build contracts
-        run: cargo build --release -p forgex-token -p forgex-factory -p forgex-bonding-curve
+        run: cargo build --release --target wasm32v1-none -p forgex-token -p forgex-factory -p forgex-bonding-curve
       - name: Deploy
         run: ./scripts/deploy-testnet.sh
         env:

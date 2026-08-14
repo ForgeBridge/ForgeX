@@ -13,6 +13,15 @@ vi.mock('@stellar/freighter-api', () => ({
   signTransaction: vi.fn().mockResolvedValue({ signedTxXdr: 'AAAA...' }),
 }))
 
+vi.mock('../../hooks/useSoroban', () => ({
+  useSoroban: () => ({
+    createToken: vi.fn().mockResolvedValue({
+      tokenId: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM',
+      curveId: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM',
+    }),
+  }),
+}))
+
 describe('CreateTokenForm Validation', () => {
   beforeEach(() => {
     useWalletStore.setState({
