@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useWalletStore } from '../../hooks/useWallet'
 import { truncateAddress } from '../../lib/format'
 import { Button } from '../ui/Button'
@@ -33,38 +34,47 @@ export function WalletConnect() {
   if (isConnected && address) {
     return (
       <div className="flex items-center gap-2">
-        {/* Balance Display Pill */}
         <div
           aria-label="Wallet balance"
-          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--forgex-bg)] border border-[var(--forgex-border)] text-xs font-mono text-[var(--forgex-text)]"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted border border-border text-xs font-mono text-foreground"
         >
-          <span className="w-2 h-2 rounded-full bg-[var(--forgex-primary)]" />
-          <span className="font-semibold">{balance !== null ? `${balance} XLM` : '...'}</span>
+          <span className="font-semibold">
+            {balance !== null ? `${balance} XLM` : '...'}
+          </span>
         </div>
 
-        {/* Address Chip with Copy Button */}
-        <div className="flex items-center gap-1 bg-[var(--forgex-bg)]/60 px-2 py-1 rounded-lg border border-[var(--forgex-border)]/60 text-xs font-mono">
-          <span className="text-[var(--forgex-text-muted)]">
+        <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md border border-border text-xs font-mono">
+          <span className="text-muted-foreground">
             {truncateAddress(address, 4, 4)}
           </span>
           <button
             type="button"
             onClick={handleCopyAddress}
-            aria-label="Copy connected address"
-            title={copied ? 'Copied address!' : 'Copy address'}
-            className="p-0.5 text-[var(--forgex-text-muted)] hover:text-[var(--forgex-primary)] transition-colors focus:outline-none"
+            aria-label="Copy address"
+            title={copied ? 'Copied!' : 'Copy address'}
+            className="p-0.5 text-muted-foreground hover:text-primary transition-colors focus:outline-none rounded"
           >
             {copied ? (
-              <span className="text-emerald-400 font-bold text-[11px]">✓</span>
+              <span className="text-success font-bold text-[11px]">✓</span>
             ) : (
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
+                />
               </svg>
             )}
           </button>
         </div>
 
-        <Button variant="secondary" size="sm" onClick={disconnect}>
+        <Button variant="ghost" size="sm" onClick={disconnect}>
           Disconnect
         </Button>
       </div>
@@ -75,20 +85,18 @@ export function WalletConnect() {
     <div className="flex items-center gap-2">
       {error && (
         <span
-          className="text-xs text-red-400 max-w-[200px] truncate cursor-pointer"
+          className="text-xs text-destructive max-w-[180px] truncate cursor-pointer"
           title={error}
           onClick={clearError}
         >
           {error}
         </span>
       )}
-      <Button
-        size="sm"
-        onClick={connect}
-        disabled={isConnecting}
-      >
-        {isConnecting ? 'Connecting…' : 'Connect Wallet'}
-      </Button>
+      <Link href="/auth">
+        <Button size="sm" onClick={connect} disabled={isConnecting}>
+          {isConnecting ? 'Connecting...' : 'Connect'}
+        </Button>
+      </Link>
     </div>
   )
 }

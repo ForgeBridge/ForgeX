@@ -2,108 +2,163 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import { WalletConnect } from '../wallet/WalletConnect'
 import { NetworkBadge } from '../wallet/NetworkBadge'
 import { ThemeToggle } from '../ui/ThemeToggle'
 
+const navLinks = [
+  { href: '/explore', label: 'Explore' },
+  { href: '/create', label: 'Create' },
+  { href: '/dashboard', label: 'Dashboard' },
+]
+
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
 
-  // Close mobile drawer on ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setMobileMenuOpen(false)
-      }
+      if (e.key === 'Escape') setMobileMenuOpen(false)
     }
     if (mobileMenuOpen) {
       document.addEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = 'hidden'
     }
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
     }
   }, [mobileMenuOpen])
 
-  return (
-    <header className="border-b border-[var(--forgex-border)] bg-[var(--forgex-surface)] relative z-40">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="text-xl font-bold text-[var(--forgex-primary)] flex items-center gap-2">
-          <span>ForgeX</span>
-        </Link>
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-5">
+  return (
+    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="text-sm font-medium text-[var(--forgex-text-muted)] hover:text-[var(--forgex-text)] transition-colors"
+            className="flex items-center gap-2 text-foreground"
           >
-            Feed
+            <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
+              <svg
+                className="w-4 h-4 text-primary-foreground"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+            </div>
+            <span className="text-base font-semibold tracking-tight">ForgeX</span>
           </Link>
-          <Link
-            href="/create"
-            className="text-sm font-medium text-[var(--forgex-text-muted)] hover:text-[var(--forgex-text)] transition-colors"
-          >
-            Create
-          </Link>
+
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  pathname === link.href || pathname.startsWith(link.href + '/')
+                    ? 'text-foreground bg-muted'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        <div className="hidden md:flex items-center gap-2">
           <NetworkBadge />
           <ThemeToggle />
+          <div className="w-px h-5 bg-border mx-1" />
           <WalletConnect />
-        </nav>
+        </div>
 
-        {/* Mobile Nav Trigger, Network & Theme */}
         <div className="flex md:hidden items-center gap-2">
           <NetworkBadge />
           <ThemeToggle />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? 'Close mobile menu' : 'Open mobile menu'}
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileMenuOpen}
-            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-[var(--forgex-border)] text-[var(--forgex-text-muted)] hover:text-[var(--forgex-text)] transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             {mobileMenuOpen ? (
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             ) : (
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"
+                />
               </svg>
             )}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Mobile Navigation"
-          className="md:hidden border-b border-[var(--forgex-border)] bg-[var(--forgex-surface)] px-4 py-6 space-y-4 animate-slideDown shadow-xl"
-        >
-          <div className="flex flex-col space-y-2">
-            <Link
-              href="/"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2.5 min-h-[44px] flex items-center rounded-lg text-base font-semibold text-[var(--forgex-text)] hover:bg-[var(--forgex-bg)] transition-colors"
-            >
-              Token Feed
-            </Link>
-            <Link
-              href="/create"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2.5 min-h-[44px] flex items-center rounded-lg text-base font-semibold text-[var(--forgex-text)] hover:bg-[var(--forgex-bg)] transition-colors"
-            >
-              Create Token
-            </Link>
-          </div>
-
-          <div className="pt-4 border-t border-[var(--forgex-border)]">
-            <WalletConnect />
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="md:hidden overflow-hidden border-b border-border bg-background"
+          >
+            <div className="px-4 py-3 space-y-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`block px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                    pathname === link.href || pathname.startsWith(link.href + '/')
+                      ? 'text-foreground bg-muted'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+            <div className="px-4 py-3 border-t border-border">
+              <WalletConnect />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   )
 }
