@@ -111,7 +111,7 @@ export function PriceChart({
       topColor: 'rgba(37, 99, 235, 0.25)',
       bottomColor: 'rgba(37, 99, 235, 0.0)',
       lineColor: '#2563eb',
-      lineWidth: 1.5,
+      lineWidth: 2,
     })
 
     const formattedPoints = filteredData.map((pt) => ({
