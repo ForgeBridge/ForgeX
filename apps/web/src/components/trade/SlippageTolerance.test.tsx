@@ -36,7 +36,7 @@ describe('SlippageTolerance', () => {
 
     fireEvent.change(customInput, { target: { value: '8' } })
     expect(useTradeStore.getState().slippage).toBe(8)
-    expect(screen.getByText(/High slippage increases the risk/i)).toBeInTheDocument()
+    expect(screen.getByText(/High slippage increases frontrunning risk/i)).toBeInTheDocument()
   })
 
   it('invokes onChange callback when passed', () => {

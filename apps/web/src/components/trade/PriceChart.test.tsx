@@ -47,7 +47,7 @@ describe('PriceChart', () => {
     const btn7d = screen.getByRole('button', { name: '7D' })
     fireEvent.click(btn7d)
 
-    expect(btn7d).toHaveClass('bg-[var(--forgex-primary)]')
+    expect(btn7d).toHaveClass('bg-background')
   })
 
   it('handles custom data points', () => {

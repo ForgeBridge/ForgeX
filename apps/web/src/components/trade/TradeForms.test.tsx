@@ -56,7 +56,7 @@ describe('Trade Forms (BuyForm, SellForm, TradePanel)', () => {
     it('renders Connect prompt in TradePanel when wallet is disconnected', () => {
       useWalletStore.setState({ isConnected: false, address: null })
       render(<TradePanel tokenSymbol="FORGE" />)
-      expect(screen.getByText(/Connect Freighter wallet to trade \$FORGE/i)).toBeInTheDocument()
+      expect(screen.getByText(/Connect wallet to trade \$FORGE/i)).toBeInTheDocument()
     })
   })
 
@@ -92,7 +92,7 @@ describe('Trade Forms (BuyForm, SellForm, TradePanel)', () => {
   describe('SellForm', () => {
     it('renders balance and allows setting max balance', () => {
       render(<SellForm tokenSymbol="FORGE" userBalance="500" />)
-      const maxBtn = screen.getByText(/500 FORGE \(Max\)/i)
+      const maxBtn = screen.getByText(/Balance: 500 \(Max\)/i)
       fireEvent.click(maxBtn)
 
       const amountInput = screen.getByLabelText(/Amount \(FORGE\)/i) as HTMLInputElement

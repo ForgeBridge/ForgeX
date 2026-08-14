@@ -19,7 +19,7 @@ const steps = [
 
 export function CreateTokenForm() {
   const router = useRouter()
-  const { isConnected, address, connect, network } = useWalletStore()
+  const { isConnected, isConnecting, address, connect, network } = useWalletStore()
   const { addToast, updateToast } = useToastStore()
   const soroban = useSoroban()
 
@@ -227,7 +227,7 @@ export function CreateTokenForm() {
         </div>
       )}
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence initial={false}>
         <motion.div
           key={currentStep}
           initial={{ opacity: 0, x: 8 }}
@@ -380,9 +380,15 @@ export function CreateTokenForm() {
         )}
 
         {currentStep < 4 ? (
-          <Button onClick={() => setCurrentStep((s) => s + 1)} disabled={!canProceed(currentStep)}>
-            Continue
-          </Button>
+          !isConnected ? (
+            <Button onClick={connect} disabled={isConnecting}>
+              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+            </Button>
+          ) : (
+            <Button onClick={() => setCurrentStep((s) => s + 1)} disabled={!canProceed(currentStep)}>
+              Continue
+            </Button>
+          )
         ) : (
           <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? 'Forging...' : !isConnected ? 'Connect Wallet' : 'Launch Token'}

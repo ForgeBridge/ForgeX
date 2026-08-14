@@ -6,7 +6,7 @@ ForgeX is an open-source **token launchpad on the Stellar blockchain**, powered 
 
 **Deployed frontend:** https://forgex.pxxl.click/
 
-**Testnet contracts (2026-08-14):**
+**Testnet contracts:**
 - Factory: `CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP` → [StellarExpert](https://stellar.expert/explorer/testnet/contract/CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP)
 - Bonding Curve: `CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN` → [StellarExpert](https://stellar.expert/explorer/testnet/contract/CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN)
 - Token (`FDEMO`): `CBYT6KPTULCXJSYIEUTWZJKKWF6B7S7SZIJRZCKSO4H5QSE5ZKQ2E6OI` → [StellarExpert](https://stellar.expert/explorer/testnet/contract/CBYT6KPTULCXJSYIEUTWZJKKWF6B7S7SZIJRZCKSO4H5QSE5ZKQ2E6OI)
@@ -61,23 +61,23 @@ ForgeX is a "fair-launch" model. There is **no liquidity pool** in the tradition
 ┌────────────────────────────────────────────────────────────────────┐
 │                          BONDING CURVE  (An AMM without pools)     │
 │                                                                    │
-│                          P(S) = P₀ × e^(k × S)                    │
+│                          P(S) = P₀ × e^(k × S)                     │
 │                                                                    │
-│   Price                                                                │
-│     ▲                                                                │
-│     │                           ╱                                    │
-│     │                         ╱                                      │
-│     │                       ╱   ← price grows exponentially            │
+│   Price                                                            │
+│     ▲                                                              │
+│     │                           ╱                                  │
+│     │                         ╱                                    │
+│     │                       ╱   ← price grows exponentially        │
 │     │                     ╱                                        │
 │     │                   ╱                                          │
 │     │                 ╱       BUY:  you pay cost, mint new tokens  │
-│     │               ╱            └─ reserve += cost                  │
+│     │               ╱            └─ reserve += cost                │
 │     │             ╱      SELL:  you return tokens, get payout      │
-│     │           ╱            └─ reserve -= payout                    │
-│     │         ╱                                                  │
+│     │           ╱            └─ reserve -= payout                  │
+│     │         ╱                                                    │
 │     │   P₀   ●╱──────────────────────────────────────────────      │
 │     └────────┴──────────────────────────────────────────────▶      │
-│                                 Supply sold (S)                      │
+│                                 Supply sold (S)                    │
 │                                                                    │
 └────────────────────────────────────────────────────────────────────┘
 ```
@@ -111,10 +111,10 @@ The exponential curve means **early buyers pay the least** and later buyers pay 
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────┐
-│                             FRONTEND (Next.js 14)                          │
-│  apps/web  ──  React 18 · TypeScript · Tailwind · zustand · Freighter      │
+│                             FRONTEND (Next.js 14)                         │
+│  apps/web  ──  React 18 · TypeScript · Tailwind · zustand · Freighter     │
 │                                                                           │
-│   ┌────────────┐  ┌──────────────┐  ┌─────────────────┐  ┌───────────────┐ │
+│   ┌────────────┐  ┌──────────────┐  ┌─────────────────┐  ┌───────────────┐ 
 │   │ Token Feed │  │ Create Token │  │ Token Detail    │  │ Wallet (via  │ │
 │   │ (/, sort)  │  │ (/create)    │  │ (/token/[id])   │  │ Freighter)   │ │
 │   └────────────┘  └──────────────┘  └──┬──────────────┘  └───────────────┘ │
@@ -141,7 +141,7 @@ The exponential curve means **early buyers pay the least** and later buyers pay 
  │  │   FACTORY (singleton)      │     │   BONDING CURVE  (per token)     │  │
  │  │   · registry of tokens     │     │   · exponential AMM state        │  │
  │  │   · admin ownership        │◄────│   · reserve · fees · cap         │  │
- │  │   · TokenCreated event     │     │   · Buy / Sell · guards         │  │
+ │  │   · TokenCreated event     │     │   · Buy / Sell · guards          │  │
  │  └──────────────┬─────────────┘     └──────────────┬───────────────────┘  │
  │                 │                                  │                      │
  │                 │   registers (token_id, curve_id) │                      │
@@ -149,7 +149,7 @@ The exponential curve means **early buyers pay the least** and later buyers pay 
  │                       ┌────────▼───────────────────▼─────────┐            │
  │                       │         TOKEN (SEP-41, per token)    │            │
  │                       │  mint · burn · transfer · approve    │            │
- │                       │  pause · upgrade · balanceOf        │            │
+ │                       │  pause · upgrade · balanceOf         │            │
  │                       └─────────────────────────────────────┘            │
  └───────────────────────────────────────────────────────────────────────────┘
 ```
