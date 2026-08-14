@@ -1,11 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState, useMemo } from 'react'
-import { createChart, ColorType, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
+import {
+  createChart,
+  ColorType,
+  IChartApi,
+  ISeriesApi,
+  UTCTimestamp,
+} from 'lightweight-charts'
 
 export interface PricePoint {
-  time: number // unix timestamp in seconds
-  value: number // price in XLM
+  time: number
+  value: number
 }
 
 export interface PriceChartProps {
@@ -21,31 +27,26 @@ export function PriceChart({
   data,
   symbol = 'TOKEN',
   currentPrice = '0.0001',
-  height = 320,
+  height = 340,
 }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Area'> | null>(null)
-
   const [timeRange, setTimeRange] = useState<TimeRange>('24H')
 
-  // Generate synthetic curve data if no data provided
   const chartData = useMemo(() => {
     if (data && data.length > 0) {
       return [...data].sort((a, b) => a.time - b.time)
     }
-
-    // Default sample curve progression
     const now = Math.floor(Date.now() / 1000)
     const basePrice = parseFloat(currentPrice) || 0.0001
     const points: PricePoint[] = []
     const count = 30
-    const step = 3600 // 1 hour per step
-
+    const step = 3600
     for (let i = count; i >= 0; i--) {
       const time = (now - i * step) as number
-      // Natural exponential/random walk curve simulation
-      const variance = 1 + (Math.sin(i / 3) * 0.08 + (Math.random() - 0.5) * 0.04)
+      const variance =
+        1 + (Math.sin(i / 3) * 0.08 + (Math.random() - 0.5) * 0.04)
       const progress = 1 + (count - i) * 0.02
       points.push({
         time,
@@ -55,7 +56,6 @@ export function PriceChart({
     return points
   }, [data, currentPrice])
 
-  // Filter data based on selected time range
   const filteredData = useMemo(() => {
     if (chartData.length === 0) return []
     const latestTime = chartData[chartData.length - 1].time
@@ -73,8 +73,6 @@ export function PriceChart({
 
   useEffect(() => {
     if (!containerRef.current) return
-
-    // Clean up previous chart
     if (chartRef.current) {
       chartRef.current.remove()
       chartRef.current = null
@@ -86,36 +84,34 @@ export function PriceChart({
       height,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#94a3b8',
+        textColor: '#a1a1aa',
         fontSize: 11,
+        fontFamily: 'var(--font-geist-sans)',
       },
       grid: {
-        vertLines: { color: 'rgba(51, 65, 85, 0.4)' },
-        horzLines: { color: 'rgba(51, 65, 85, 0.4)' },
+        vertLines: { color: 'rgba(39, 39, 42, 0.5)' },
+        horzLines: { color: 'rgba(39, 39, 42, 0.5)' },
       },
       crosshair: {
-        vertLine: { color: '#2e8c8e', width: 1, style: 3 },
-        horzLine: { color: '#2e8c8e', width: 1, style: 3 },
+        vertLine: { color: '#2563eb', width: 1, style: 3 },
+        horzLine: { color: '#2563eb', width: 1, style: 3 },
       },
       timeScale: {
-        borderColor: 'rgba(51, 65, 85, 0.8)',
+        borderColor: 'rgba(39, 39, 42, 0.8)',
         timeVisible: true,
         secondsVisible: false,
       },
       rightPriceScale: {
-        borderColor: 'rgba(51, 65, 85, 0.8)',
-        scaleMargins: {
-          top: 0.15,
-          bottom: 0.15,
-        },
+        borderColor: 'rgba(39, 39, 42, 0.8)',
+        scaleMargins: { top: 0.15, bottom: 0.15 },
       },
     })
 
     const areaSeries = chart.addAreaSeries({
-      topColor: 'rgba(46, 140, 142, 0.4)',
-      bottomColor: 'rgba(46, 140, 142, 0.0)',
-      lineColor: '#2e8c8e',
-      lineWidth: 2,
+      topColor: 'rgba(37, 99, 235, 0.25)',
+      bottomColor: 'rgba(37, 99, 235, 0.0)',
+      lineColor: '#2563eb',
+      lineWidth: 1.5,
     })
 
     const formattedPoints = filteredData.map((pt) => ({
@@ -140,7 +136,6 @@ export function PriceChart({
     }
 
     window.addEventListener('resize', handleResize)
-
     const resizeObserver = new ResizeObserver(() => handleResize())
     resizeObserver.observe(containerRef.current)
 
@@ -157,34 +152,39 @@ export function PriceChart({
 
   return (
     <div
-      aria-label="Price Chart Container"
-      className="bg-[var(--forgex-surface)] rounded-lg border border-[var(--forgex-border)] p-4 space-y-4 shadow-sm"
+      aria-label="Price Chart"
+      className="bg-card rounded-lg border border-border p-4 space-y-3"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-xs text-[var(--forgex-text-muted)] font-medium">
+          <div className="text-xs text-muted-foreground font-medium">
             {symbol} Price
           </div>
-          <div className="text-xl sm:text-2xl font-bold font-mono text-[var(--forgex-text)]">
-            {currentPrice} <span className="text-xs font-normal text-[var(--forgex-text-muted)]">XLM</span>
+          <div className="text-xl sm:text-2xl font-bold font-mono text-foreground">
+            {currentPrice}{' '}
+            <span className="text-xs font-normal text-muted-foreground">
+              XLM
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1 bg-[var(--forgex-bg)] p-1 rounded-lg border border-[var(--forgex-border)] text-xs">
-          {(['1H', '24H', '7D', '1M', 'ALL'] as TimeRange[]).map((range) => (
-            <button
-              key={range}
-              type="button"
-              onClick={() => setTimeRange(range)}
-              className={`px-2.5 py-1 rounded font-medium transition-colors ${
-                timeRange === range
-                  ? 'bg-[var(--forgex-primary)] text-white shadow-sm'
-                  : 'text-[var(--forgex-text-muted)] hover:text-[var(--forgex-text)]'
-              }`}
-            >
-              {range}
-            </button>
-          ))}
+        <div className="flex items-center gap-0.5 bg-muted p-0.5 rounded-md text-xs">
+          {(['1H', '24H', '7D', '1M', 'ALL'] as TimeRange[]).map(
+            (range) => (
+              <button
+                key={range}
+                type="button"
+                onClick={() => setTimeRange(range)}
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                  timeRange === range
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {range}
+              </button>
+            )
+          )}
         </div>
       </div>
 

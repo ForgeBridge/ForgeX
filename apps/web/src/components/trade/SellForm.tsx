@@ -96,15 +96,13 @@ export function SellForm({
     const pendingToastId = addToast({
       type: 'pending',
       title: 'Submitting Sell Order',
-      message: `Selling ${amount} ${tokenSymbol} on Soroban...`,
+      message: `Selling ${amount} ${tokenSymbol}...`,
     })
 
     try {
       const trimmed = amount.trim()
       const amountInBaseUnits = parseTokenAmount(trimmed, tokenDecimals).toString()
-      // Calculate minPayout with slippage tolerance
       const minPayoutWithSlippage = (minPayout * (1 - slippage / 100)).toFixed(0)
-      // Deadline: 1 hour from now (unix timestamp)
       const deadline = Math.floor(Date.now() / 1000) + 3600
       const freighter = await import('@stellar/freighter-api')
 
@@ -114,16 +112,25 @@ export function SellForm({
           sourceAccount: address,
           signers: [
             async (xdr: string) => {
-              const signResult = await freighter.signTransaction(xdr, { networkPassphrase: network === 'mainnet' ? 'Public Global Stellar Network ; September 2015' : 'Test SDF Network ; September 2015' })
+              const signResult = await freighter.signTransaction(xdr, {
+                networkPassphrase:
+                  network === 'mainnet'
+                    ? 'Public Global Stellar Network ; September 2015'
+                    : 'Test SDF Network ; September 2015',
+              })
               if (signResult.error) {
-                throw new Error(signResult.error.message || 'Transaction signing rejected')
+                throw new Error(signResult.error.message || 'Signing rejected')
               }
               return signResult.signedTxXdr
             },
           ],
         })
       } catch (err: any) {
-        if (err.message?.includes('not yet wired') || err.message?.includes('Unsupported address') || !curveContractId) {
+        if (
+          err.message?.includes('not yet wired') ||
+          err.message?.includes('Unsupported address') ||
+          !curveContractId
+        ) {
           // Handled simulation
         } else {
           throw err
@@ -134,7 +141,7 @@ export function SellForm({
       updateToast(pendingToastId, {
         type: 'success',
         title: 'Trade Confirmed',
-        message: `Successfully sold ${trimmed} ${tokenSymbol}!`,
+        message: `Sold ${trimmed} ${tokenSymbol}!`,
         txHash,
         explorerUrl: `https://stellar.expert/explorer/${network}/contract/${curveContractId}`,
         durationMs: 5000,
@@ -146,7 +153,8 @@ export function SellForm({
       triggerRefresh()
       onSuccess?.({ amount: trimmed, txHash })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to execute sell transaction'
+      const msg =
+        err instanceof Error ? err.message : 'Failed to execute sell'
       updateToast(pendingToastId, {
         type: 'error',
         title: 'Transaction Failed',
@@ -162,27 +170,33 @@ export function SellForm({
 
   return (
     <>
-      <form onSubmit={handleOpenConfirm} className="space-y-4">
+      <form onSubmit={handleOpenConfirm} className="space-y-3">
         {error && (
-          <div role="alert" className="bg-red-500/10 border border-red-500/30 text-red-400 p-2.5 rounded text-xs">
+          <div
+            role="alert"
+            className="bg-destructive/10 border border-destructive/20 text-destructive p-2.5 rounded-md text-xs"
+          >
             {error}
           </div>
         )}
 
         {successMessage && (
-          <div role="status" className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-2.5 rounded text-xs">
+          <div
+            role="status"
+            className="bg-success/10 border border-success/20 text-success p-2.5 rounded-md text-xs"
+          >
             {successMessage}
           </div>
         )}
 
-        <div className="flex justify-between items-center text-xs text-[var(--forgex-text-muted)]">
+        <div className="flex justify-between items-center text-xs text-muted-foreground">
           <label htmlFor="sell-amount">Amount ({tokenSymbol})</label>
           <button
             type="button"
-            className="text-[var(--forgex-primary)] hover:underline"
+            className="text-primary hover:underline"
             onClick={() => setAmount(userBalance)}
           >
-            Balance: {userBalance} {tokenSymbol} (Max)
+            Balance: {userBalance} (Max)
           </button>
         </div>
 
@@ -197,9 +211,9 @@ export function SellForm({
           required
         />
 
-        <div className="text-xs text-[var(--forgex-text-muted)] flex justify-between">
+        <div className="text-xs text-muted-foreground flex justify-between">
           <span>Price per token:</span>
-          <span className="font-mono text-[var(--forgex-text)]">{tokenPrice} XLM</span>
+          <span className="font-mono text-foreground">{tokenPrice} XLM</span>
         </div>
 
         <QuotePreview

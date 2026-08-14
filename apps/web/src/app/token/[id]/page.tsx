@@ -1,18 +1,21 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { PriceChart } from '../../../components/trade/PriceChart'
 import { TradePanel } from '../../../components/trade/TradePanel'
 import { PageLoader } from '../../../components/ui/PageLoader'
 import { ErrorView } from '../../../components/ui/ErrorView'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { TokenDetailHeader } from '../../../components/tokens/TokenDetailHeader'
-import { TokenStatsRow, TokenStats } from '../../../components/tokens/TokenStatsRow'
-import { RecentTrades, TradeItem } from '../../../components/tokens/RecentTrades'
+import { TokenStatsRow } from '../../../components/tokens/TokenStatsRow'
+import { RecentTrades } from '../../../components/tokens/RecentTrades'
 import { usePolling } from '../../../hooks/usePolling'
 import { useWalletStore } from '../../../hooks/useWallet'
 import { useTradeStore } from '../../../hooks/useBondingCurve'
+import { useCallback, useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import type { TokenStats } from '../../../components/tokens/TokenStatsRow'
+import type { TradeItem } from '../../../components/tokens/RecentTrades'
 
 export default function TokenDetailPage() {
   const params = useParams()
@@ -38,10 +41,7 @@ export default function TokenDetailPage() {
 
   const fetchTokenData = useCallback(async () => {
     try {
-      if (!tokenId) {
-        throw new Error('Token ID is required')
-      }
-      // Simulated token fetch with fallback
+      if (!tokenId) throw new Error('Token ID is required')
       await new Promise((resolve) => setTimeout(resolve, 50))
       const now = Math.floor(Date.now() / 1000)
       setTokenData((prev) => ({
@@ -51,7 +51,9 @@ export default function TokenDetailPage() {
         curveId: prev?.curveId || `${tokenId}_curve`,
         creator: prev?.creator || 'GDJY...CREATOR',
         createdAt: prev?.createdAt || now - 86400 * 3,
-        description: prev?.description || 'First community forged token on Stellar Soroban with exponential bonding curve.',
+        description:
+          prev?.description ||
+          'Community forged token on Stellar Soroban with exponential bonding curve.',
         imageUri: prev?.imageUri,
         website: 'https://forgex.fi',
         stats: {
@@ -84,26 +86,18 @@ export default function TokenDetailPage() {
             account: 'GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBWHF',
             timestamp: now - 600,
           },
-          {
-            id: 'tx_3',
-            type: 'buy',
-            tokenAmount: '100,000',
-            xlmAmount: '10.00',
-            price: '0.0001',
-            account: 'GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCWHF',
-            timestamp: now - 3600,
-          },
         ],
       }))
       setError(null)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch token data')
+      setError(
+        err instanceof Error ? err.message : 'Failed to fetch token data'
+      )
     } finally {
       setLoading(false)
     }
   }, [tokenId])
 
-  // Periodic polling for token price, wallet balance, and trade events every 5 seconds
   const { refresh, isPolling } = usePolling(
     useCallback(async () => {
       await Promise.all([fetchTokenData(), fetchBalance()])
@@ -111,26 +105,23 @@ export default function TokenDetailPage() {
     { intervalMs: 5000, pauseOnHidden: true, immediate: true }
   )
 
-  // Trigger refresh on trade store events
   useEffect(() => {
-    if (refreshCounter > 0) {
-      fetchTokenData()
-    }
+    if (refreshCounter > 0) fetchTokenData()
   }, [refreshCounter, fetchTokenData])
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <PageLoader message="Loading token and bonding curve details…" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <PageLoader message="Loading token details..." />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <ErrorView
-          title="Failed to load token details"
+          title="Failed to load token"
           message={error}
           onRetry={refresh}
           retryLabel="Retry"
@@ -141,43 +132,76 @@ export default function TokenDetailPage() {
 
   if (!tokenData) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <EmptyState
           title="Token Not Found"
-          description={`No bonding curve or token contract was found matching identifier "${tokenId}".`}
+          description={`No token found matching "${tokenId}".`}
           actionLabel="Explore Tokens"
-          actionHref="/"
+          actionHref="/explore"
         />
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-      <TokenDetailHeader
-        metadata={tokenData}
-        network={network}
-        isLive={isPolling}
-      />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <TokenDetailHeader
+          metadata={tokenData}
+          network={network}
+          isLive={isPolling}
+        />
+      </motion.div>
 
-      <TokenStatsRow stats={tokenData.stats} />
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.05 }}
+      >
+        <TokenStatsRow stats={tokenData.stats} />
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <PriceChart symbol={tokenData.symbol} currentPrice={tokenData.stats.price} />
-          <RecentTrades
-            trades={tokenData.recentTrades}
-            tokenSymbol={tokenData.symbol}
-            network={network}
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 space-y-5">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <PriceChart
+              symbol={tokenData.symbol}
+              currentPrice={tokenData.stats.price}
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.15 }}
+          >
+            <RecentTrades
+              trades={tokenData.recentTrades}
+              tokenSymbol={tokenData.symbol}
+              network={network}
+            />
+          </motion.div>
         </div>
 
         <div className="lg:col-span-1">
-          <TradePanel
-            curveContractId={tokenId}
-            tokenSymbol={tokenData.symbol}
-            tokenPrice={tokenData.stats.price}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+          >
+            <TradePanel
+              curveContractId={tokenId}
+              tokenSymbol={tokenData.symbol}
+              tokenPrice={tokenData.stats.price}
+            />
+          </motion.div>
         </div>
       </div>
     </div>
