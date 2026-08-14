@@ -6,6 +6,11 @@ ForgeX is an open-source **token launchpad on the Stellar blockchain**, powered 
 
 **Deployed frontend:** https://forgex.pxxl.click/
 
+**Testnet contracts (2026-08-14):**
+- Factory: `CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP` → [StellarExpert](https://stellar.expert/explorer/testnet/contract/CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP)
+- Bonding Curve: `CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN` → [StellarExpert](https://stellar.expert/explorer/testnet/contract/CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN)
+- Token (`FDEMO`): `CBYT6KPTULCXJSYIEUTWZJKKWF6B7S7SZIJRZCKSO4H5QSE5ZKQ2E6OI` → [StellarExpert](https://stellar.expert/explorer/testnet/contract/CBYT6KPTULCXJSYIEUTWZJKKWF6B7S7SZIJRZCKSO4H5QSE5ZKQ2E6OI)
+
 ---
 
 ## Table of Contents
@@ -485,7 +490,7 @@ See `docs/` for deep dives (all current, expanded beyond this README):
 | 7. Token Creation Flow | ✅ Done — wired to `ForgeXClient.createToken` (testnet) |
 | 8. Trading Flow (buy/sell) | 🚧 In progress — UI complete; on-chain wiring for simulated fallback |
 | 9. Token Feed & Polish | 🚧 In progress — live feed from Factory on deploy |
-| 10. Testnet Launch | ✅ Frontend live at **https://forgex.pxxl.click**; full end-to-end on-chain flow next |
+| 10. Testnet Launch | ✅ Contracts deployed & initialized (factory + curve + `FDEMO` token) · frontend live at **https://forgex.pxxl.click**; full end-to-end on-chain flow next |
 
 ### Mainnet gate (Security, per Architecture.md)
 

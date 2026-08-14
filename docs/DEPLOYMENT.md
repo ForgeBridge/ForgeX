@@ -28,6 +28,20 @@ export SOROBAN_ACCOUNT=<your-secret-key>
 ./scripts/deploy-testnet.sh
 ```
 
+## Current Testnet Deployment
+
+Deployed on **2026-08-14** to Stellar Testnet (`https://soroban-testnet.stellar.org`). All three contracts are live and the factory has been initialized with the deployer as admin.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| Factory | `CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP` | https://stellar.expert/explorer/testnet/contract/CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP |
+| Bonding Curve | `CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN` | https://stellar.expert/explorer/testnet/contract/CD7Q2RTRO7L2TC4WJSNVNONIWZFHVGAZGEXFI4INEK4QMEJ3JO3K4FRN |
+| Token (ForgeX Demo `FDEMO`) | `CBYT6KPTULCXJSYIEUTWZJKKWF6B7S7SZIJRZCKSO4H5QSE5ZKQ2E6OI` | https://stellar.expert/explorer/testnet/contract/CBYT6KPTULCXJSYIEUTWZJKKWF6B7S7SZIJRZCKSO4H5QSE5ZKQ2E6OI |
+
+Lab link: https://lab.stellar.org/r/testnet/contract/CBFMYDQDRJGOXYRKBDBBS2LQTAHHYYXUDAPGZVZJ2MEYJWHT3RGUSEJP
+
+The values are also saved to `.env.testnet` (gitignored) and mirrored to `.env.local` for the frontend.
+
 ## Deploy to Mainnet (v2)
 
 Mainnet deployment requires:
