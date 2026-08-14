@@ -1,9 +1,19 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { EmptyState } from './EmptyState'
 import { TokenFeed } from '../tokens/TokenFeed'
+import { useTokenStore } from '../../hooks/useToken'
 
 describe('EmptyState and TokenFeed Empty States', () => {
+  beforeEach(() => {
+    useTokenStore.setState({
+      tokens: [],
+      loading: false,
+      error: null,
+      fetchTokens: vi.fn(),
+    })
+  })
+
   it('renders EmptyState title, description, and link action', () => {
     render(
       <EmptyState

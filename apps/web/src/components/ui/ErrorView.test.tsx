@@ -1,9 +1,19 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ErrorView } from './ErrorView'
 import { TokenFeed } from '../tokens/TokenFeed'
+import { useTokenStore } from '../../hooks/useToken'
 
 describe('ErrorView and TokenFeed Error States', () => {
+  beforeEach(() => {
+    useTokenStore.setState({
+      tokens: [],
+      loading: false,
+      error: null,
+      fetchTokens: vi.fn(),
+    })
+  })
+
   it('renders default error message and alert role', () => {
     render(<ErrorView />)
     expect(screen.getByRole('alert')).toBeInTheDocument()
