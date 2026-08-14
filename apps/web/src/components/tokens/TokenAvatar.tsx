@@ -22,19 +22,19 @@ export function TokenAvatar({
   const resolvedUrl = resolveMediaUrl(imageUri)
 
   const sizeClasses = {
-    sm: 'w-7 h-7 text-xs',
-    md: 'w-10 h-10 text-sm',
-    lg: 'w-14 h-14 text-base font-bold',
-    xl: 'w-20 h-20 text-xl font-bold',
+    sm: 'w-7 h-7 text-[10px]',
+    md: 'w-9 h-9 text-xs',
+    lg: 'w-12 h-12 text-sm',
+    xl: 'w-16 h-16 text-base',
   }
 
-  const initials = (symbol || '?').slice(0, 3).toUpperCase()
+  const initials = (symbol || '?').slice(0, 2).toUpperCase()
   const gradient = getDeterministicGradient(symbol || 'DEFAULT')
 
   if (resolvedUrl && !imageError) {
     return (
       <div
-        className={`relative overflow-hidden rounded-full shrink-0 border border-[var(--forgex-border)] bg-[var(--forgex-surface)] ${sizeClasses[size]} ${className}`}
+        className={`relative overflow-hidden rounded-md shrink-0 border border-border bg-muted ${sizeClasses[size]} ${className}`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -52,7 +52,7 @@ export function TokenAvatar({
     <div
       role="img"
       aria-label={alt || `${symbol} avatar`}
-      className={`rounded-full shrink-0 flex items-center justify-center font-bold text-white bg-gradient-to-br shadow-inner ${gradient} ${sizeClasses[size]} ${className}`}
+      className={`rounded-md shrink-0 flex items-center justify-center font-bold text-white bg-gradient-to-br ${gradient} ${sizeClasses[size]} ${className}`}
     >
       {initials}
     </div>
