@@ -168,6 +168,7 @@ export function PriceChart({
   }, [filteredData])
 
   const priceSummary = `${symbol} current price ${currentPrice} XLM over ${timeRange}. ${filteredData.length} data points.`
+  const isDemoData = !data || data.length === 0
 
   return (
     <div
@@ -181,8 +182,13 @@ export function PriceChart({
       </p>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-xs text-muted-foreground font-medium">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
             {symbol} Price
+            {isDemoData && (
+              <span className="rounded border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                Demo data
+              </span>
+            )}
           </div>
           <div className="text-xl sm:text-2xl font-bold font-mono text-foreground">
             {currentPrice}{' '}

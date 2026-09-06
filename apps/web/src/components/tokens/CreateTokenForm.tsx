@@ -36,6 +36,7 @@ export function CreateTokenForm() {
   const [createdResult, setCreatedResult] = useState<{
     tokenId: string
     curveId: string
+    simulated?: boolean
   } | null>(null)
 
   const errors = useMemo(() => {
@@ -125,9 +126,11 @@ export function CreateTokenForm() {
         })
         .catch((err) => {
           if (err.message?.includes('not yet wired') || !FACTORY_CONTRACT_ID) {
+            // Simulated fallback for local dev without deployed contracts.
             return {
               tokenId: `C${Array.from({ length: 55 }, () => Math.floor(Math.random() * 36).toString(36).toUpperCase()).join('')}`,
               curveId: `C${Array.from({ length: 55 }, () => Math.floor(Math.random() * 36).toString(36).toUpperCase()).join('')}`,
+              simulated: true,
             }
           }
           throw err
@@ -169,6 +172,11 @@ export function CreateTokenForm() {
           </svg>
         </div>
         <h3 className="text-lg font-semibold text-foreground">Token Created!</h3>
+        {createdResult.simulated && (
+          <p className="inline-block rounded border border-warning/40 bg-warning/10 px-2 py-1 text-xs font-medium text-warning">
+            Simulated result — no on-chain transaction was submitted.
+          </p>
+        )}
         <p className="text-sm text-muted-foreground">
           Your token is live on Stellar Soroban with a bonding curve.
         </p>
