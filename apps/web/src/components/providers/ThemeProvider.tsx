@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { MotionConfig } from 'framer-motion'
 import { useThemeStore } from '../../hooks/useTheme'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -10,5 +11,5 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     initTheme()
   }, [initTheme])
 
-  return <>{children}</>
+  return <MotionConfig reducedMotion="user">{children}</MotionConfig>
 }
