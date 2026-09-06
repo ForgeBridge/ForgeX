@@ -200,7 +200,7 @@ export function PriceChart({
                 onClick={() => setTimeRange(range)}
                 aria-pressed={timeRange === range}
                 aria-label={`Show ${range} price range`}
-                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                className={`px-3 py-2 rounded text-xs font-medium transition-colors ${
                   timeRange === range
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'

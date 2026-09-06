@@ -84,7 +84,7 @@ export function TransactionConfirmationModal({
                 onClick={onClose}
                 disabled={isSubmitting}
                 aria-label="Close modal"
-                className="text-muted-foreground hover:text-foreground p-1 transition-colors disabled:opacity-50 rounded"
+                className="text-muted-foreground hover:text-foreground p-1 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors disabled:opacity-50 rounded"
               >
                 ✕
               </button>

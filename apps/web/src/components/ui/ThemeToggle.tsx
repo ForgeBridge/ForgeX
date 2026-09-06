@@ -14,7 +14,7 @@ export function ThemeToggle() {
   }, [initTheme])
 
   if (!mounted) {
-    return <div className="w-8 h-8 rounded-md border border-border bg-muted" />
+    return <div className="min-w-[44px] min-h-[44px] rounded-md border border-border bg-muted" />
   }
 
   return (
@@ -24,7 +24,7 @@ export function ThemeToggle() {
       whileTap={{ scale: 0.92 }}
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-      className="w-8 h-8 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
     >
       {theme === 'dark' ? (
         <svg
