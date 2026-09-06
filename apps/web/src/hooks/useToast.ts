@@ -25,7 +25,16 @@ export interface ToastStoreState {
 
 let toastCounter = 0
 
-export const useToastStore = create<ToastStoreState>((set, get) => ({
+/**
+ * Toast durations (verified):
+ * - success/info: 5000ms default
+ * - error: 6000ms (callers pass durationMs: 6000)
+ * - pending: 0 = persistent until updateToast/removeToast
+ *
+ * Auto-dismiss is owned by ToastCard (hover/focus pauses the countdown);
+ * the store only holds data and never sets timers, so pausing is reliable.
+ */
+export const useToastStore = create<ToastStoreState>((set) => ({
   toasts: [],
 
   addToast: (toast) => {
@@ -41,12 +50,6 @@ export const useToastStore = create<ToastStoreState>((set, get) => ({
       toasts: [...state.toasts, newToast],
     }))
 
-    if (newToast.durationMs && newToast.durationMs > 0) {
-      setTimeout(() => {
-        get().removeToast(id)
-      }, newToast.durationMs)
-    }
-
     return id
   },
 
@@ -54,13 +57,6 @@ export const useToastStore = create<ToastStoreState>((set, get) => ({
     set((state) => ({
       toasts: state.toasts.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     }))
-
-    const updated = get().toasts.find((t) => t.id === id)
-    if (updated && updated.durationMs && updated.durationMs > 0) {
-      setTimeout(() => {
-        get().removeToast(id)
-      }, updated.durationMs)
-    }
   },
 
   removeToast: (id) => {

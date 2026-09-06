@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { useToastStore, ToastItem } from '../../hooks/useToast'
 import { Spinner } from './Spinner'
 
@@ -31,6 +32,34 @@ interface ToastCardProps {
 }
 
 function ToastCard({ toast, onDismiss }: ToastCardProps) {
+  const [paused, setPaused] = useState(false)
+  const remainingRef = useRef(toast.durationMs ?? 0)
+  const lastDurationKey = useRef(`${toast.id}:${toast.durationMs ?? 0}`)
+  const deadlineRef = useRef<number>(0)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const durationKey = `${toast.id}:${toast.durationMs ?? 0}`
+  if (lastDurationKey.current !== durationKey) {
+    lastDurationKey.current = durationKey
+    remainingRef.current = toast.durationMs ?? 0
+  }
+
+  // Hover/focus-pausable auto-dismiss countdown.
+  useEffect(() => {
+    const duration = toast.durationMs ?? 0
+    if (!duration || duration <= 0) return
+    if (paused) return
+    deadlineRef.current = Date.now() + remainingRef.current
+    timerRef.current = setTimeout(onDismiss, remainingRef.current)
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+      remainingRef.current = Math.max(
+        0,
+        deadlineRef.current - Date.now()
+      )
+    }
+  }, [toast.durationMs, toast.id, paused, onDismiss])
+
   const borderColors = {
     info: 'border-l-primary',
     success: 'border-l-success',
@@ -66,6 +95,10 @@ function ToastCard({ toast, onDismiss }: ToastCardProps) {
   return (
     <div
       role={role}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
       className={`pointer-events-auto p-3.5 rounded-lg border border-border border-l-[3px] shadow-elevated bg-card flex items-start gap-3 animate-slide-up ${borderColors[toast.type]}`}
     >
       <div className="shrink-0 mt-0.5">{icons[toast.type]}</div>
@@ -111,9 +144,22 @@ function ToastCard({ toast, onDismiss }: ToastCardProps) {
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss notification"
-        className="text-muted-foreground hover:text-foreground text-xs p-1 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors rounded"
+        className="text-muted-foreground hover:text-foreground p-1 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors rounded"
       >
-        ✕
+        <svg
+          aria-hidden="true"
+          className="w-4 h-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
       </button>
     </div>
   )
