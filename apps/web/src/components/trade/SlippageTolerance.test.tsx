@@ -16,15 +16,16 @@ describe('SlippageTolerance', () => {
 
   it('renders preset slippage buttons with default selected', () => {
     render(<SlippageTolerance />)
-    expect(screen.getByRole('button', { name: '0.5%' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '1%' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '2%' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '5%' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set slippage to 0.5 percent' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set slippage to 1 percent' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set slippage to 2 percent' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set slippage to 5 percent' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set slippage to 1 percent' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('updates store slippage when a preset button is clicked', () => {
     render(<SlippageTolerance />)
-    const btn5 = screen.getByRole('button', { name: '5%' })
+    const btn5 = screen.getByRole('button', { name: 'Set slippage to 5 percent' })
     fireEvent.click(btn5)
 
     expect(useTradeStore.getState().slippage).toBe(5)
@@ -43,7 +44,7 @@ describe('SlippageTolerance', () => {
     const onChange = vi.fn()
     render(<SlippageTolerance onChange={onChange} />)
 
-    const btn2 = screen.getByRole('button', { name: '2%' })
+    const btn2 = screen.getByRole('button', { name: 'Set slippage to 2 percent' })
     fireEvent.click(btn2)
 
     expect(onChange).toHaveBeenCalledWith(2)
