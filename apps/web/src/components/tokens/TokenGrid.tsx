@@ -16,7 +16,7 @@ interface TokenGridProps {
 export function TokenGrid({ tokens }: TokenGridProps) {
   if (tokens.length === 0) {
     return (
-      <p className="text-[var(--forgex-text-muted)] col-span-full text-center py-12">
+      <p className="text-muted-foreground col-span-full text-center py-12">
         No tokens yet. Be the first to create one!
       </p>
     )
