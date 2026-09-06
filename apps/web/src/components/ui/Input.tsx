@@ -5,9 +5,10 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string
 }
 
-export function Input({ label, error, id, className = '', ...props }: InputProps) {
+export function Input({ label, error, id, required, className = '', ...props }: InputProps) {
   const inputId =
     id || (label ? label.toLowerCase().replace(/[^a-z0-9]/g, '-') : undefined)
+  const errorId = inputId ? `${inputId}-error` : undefined
 
   return (
     <div className="space-y-1.5">
@@ -21,12 +22,20 @@ export function Input({ label, error, id, className = '', ...props }: InputProps
       )}
       <input
         id={inputId}
+        required={required}
+        aria-required={required ? true : undefined}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error && errorId ? errorId : undefined}
         className={`w-full h-9 px-3 rounded-md bg-background border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 transition-colors ${
           error ? 'border-destructive' : 'border-input'
         } ${className}`}
         {...props}
       />
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <p id={errorId} role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   )
 }
