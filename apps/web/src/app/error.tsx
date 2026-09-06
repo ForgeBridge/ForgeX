@@ -28,16 +28,16 @@ export default function ErrorPage({ error, reset }: ErrorProps) {
         </svg>
       </div>
 
-      <h1 className="text-3xl font-extrabold text-[var(--forgex-text)] mb-3">
+      <h1 className="text-3xl font-extrabold text-foreground mb-3">
         Something went wrong
       </h1>
 
-      <p className="text-[var(--forgex-text-muted)] text-base mb-4 max-w-md mx-auto leading-relaxed">
+      <p className="text-muted-foreground text-base mb-4 max-w-md mx-auto leading-relaxed">
         {error.message || 'An unexpected error occurred while communicating with the network.'}
       </p>
 
       {error.digest && (
-        <p className="text-xs font-mono text-[var(--forgex-text-muted)] mb-8">
+        <p className="text-xs font-mono text-muted-foreground mb-8">
           Error Digest: {error.digest}
         </p>
       )}
@@ -48,7 +48,7 @@ export default function ErrorPage({ error, reset }: ErrorProps) {
         </Button>
         <Link
           href="/"
-          className="px-4 py-2 rounded-lg bg-[var(--forgex-surface)] border border-[var(--forgex-border)] text-sm text-[var(--forgex-text)] font-medium hover:opacity-90 transition-opacity"
+          className="px-4 py-2 rounded-lg bg-secondary border border-border text-sm text-secondary-foreground font-medium hover:opacity-90 transition-opacity"
         >
           Return to Feed
         </Link>

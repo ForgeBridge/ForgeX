@@ -9,6 +9,8 @@ export const size = {
 export const contentType = 'image/png'
 
 export default async function Image() {
+  // Exception: hex colors are intentional here — opengraph-image renders to
+  // static PNG via next/og (no CSS variables / theming available).
   return new ImageResponse(
     (
       <div
