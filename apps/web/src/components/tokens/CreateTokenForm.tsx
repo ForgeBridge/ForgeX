@@ -164,7 +164,7 @@ export function CreateTokenForm() {
         className="bg-card rounded-lg border border-success/30 p-8 text-center space-y-4"
       >
         <div className="w-12 h-12 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto">
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <svg aria-hidden="true" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
@@ -196,6 +196,7 @@ export function CreateTokenForm() {
           <div key={step.id} className="flex items-center gap-2 flex-1">
             <div className="flex items-center gap-2 flex-1">
               <div
+                aria-hidden="true"
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors ${
                   currentStep > step.id
                     ? 'bg-primary text-primary-foreground'

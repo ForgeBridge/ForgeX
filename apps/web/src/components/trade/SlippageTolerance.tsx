@@ -107,6 +107,7 @@ export function SlippageTolerance({ value, onChange }: SlippageToleranceProps) {
       {currentSlippage > 5 && (
         <p className="text-warning text-[11px] flex items-center gap-1">
           <svg
+            aria-hidden="true"
             className="w-3.5 h-3.5 flex-shrink-0"
             fill="none"
             viewBox="0 0 24 24"

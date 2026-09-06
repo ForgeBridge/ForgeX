@@ -40,22 +40,22 @@ function ToastCard({ toast, onDismiss }: ToastCardProps) {
 
   const icons = {
     info: (
-      <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+      <div aria-hidden="true" className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
         i
       </div>
     ),
     success: (
-      <div className="w-5 h-5 rounded-full bg-success/10 text-success flex items-center justify-center text-xs font-bold">
+      <div aria-hidden="true" className="w-5 h-5 rounded-full bg-success/10 text-success flex items-center justify-center text-xs font-bold">
         ✓
       </div>
     ),
     error: (
-      <div className="w-5 h-5 rounded-full bg-destructive/10 text-destructive flex items-center justify-center text-xs font-bold">
+      <div aria-hidden="true" className="w-5 h-5 rounded-full bg-destructive/10 text-destructive flex items-center justify-center text-xs font-bold">
         ✕
       </div>
     ),
     pending: (
-      <div className="w-5 h-5 flex items-center justify-center">
+      <div aria-hidden="true" className="w-5 h-5 flex items-center justify-center">
         <Spinner size="sm" />
       </div>
     ),
