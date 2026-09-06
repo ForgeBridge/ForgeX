@@ -87,6 +87,7 @@ export function PriceChart({
     return filtered.length > 0 ? filtered : chartData
   }, [chartData, timeRange])
 
+  // Create chart + series once per height/theme; data updates flow via setData below.
   useEffect(() => {
     if (!containerRef.current) return
     if (chartRef.current) {
@@ -130,33 +131,18 @@ export function PriceChart({
       lineWidth: 2,
     })
 
-    const formattedPoints = filteredData.map((pt) => ({
-      time: pt.time as UTCTimestamp,
-      value: pt.value,
-    }))
-
-    if (formattedPoints.length > 0) {
-      areaSeries.setData(formattedPoints)
-      chart.timeScale().fitContent()
-    }
-
     chartRef.current = chart
     seriesRef.current = areaSeries
 
-    const handleResize = () => {
-      if (containerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: containerRef.current.clientWidth,
-        })
+    const container = containerRef.current
+    const resizeObserver = new ResizeObserver(() => {
+      if (container && chartRef.current) {
+        chartRef.current.applyOptions({ width: container.clientWidth })
       }
-    }
-
-    window.addEventListener('resize', handleResize)
-    const resizeObserver = new ResizeObserver(() => handleResize())
-    resizeObserver.observe(containerRef.current)
+    })
+    resizeObserver.observe(container)
 
     return () => {
-      window.removeEventListener('resize', handleResize)
       resizeObserver.disconnect()
       if (chartRef.current) {
         chartRef.current.remove()
@@ -164,7 +150,22 @@ export function PriceChart({
         seriesRef.current = null
       }
     }
-  }, [filteredData, height, theme, themeColors.border, themeColors.grid, themeColors.text])
+    // Theme colors intentionally read once per theme value via primitive deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [height, theme])
+
+  // Push data updates without recreating the canvas node.
+  useEffect(() => {
+    if (!seriesRef.current || !chartRef.current) return
+    const formattedPoints = filteredData.map((pt) => ({
+      time: pt.time as UTCTimestamp,
+      value: pt.value,
+    }))
+    if (formattedPoints.length > 0) {
+      seriesRef.current.setData(formattedPoints)
+      chartRef.current.timeScale().fitContent()
+    }
+  }, [filteredData])
 
   const priceSummary = `${symbol} current price ${currentPrice} XLM over ${timeRange}. ${filteredData.length} data points.`
 
