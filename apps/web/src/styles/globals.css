@@ -4,6 +4,9 @@
 
 /* ═══════════════════════════════════════════════════════════
    ForgeX Design System — Institutional-grade monochromatic
+   Exception: token avatar identicons (lib/ipfs.ts) are functional
+   color hashes for token distinguishability, exempt from the
+   monochrome rule by design.
    ═══════════════════════════════════════════════════════════ */
 
 :root {
