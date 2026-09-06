@@ -175,6 +175,30 @@ h3 {
   100% { background-position: -200% 0; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  .skeleton {
+    animation: none;
+  }
+
+  .forgex-ticker-track {
+    animation: none;
+    flex-wrap: wrap;
+    width: auto;
+  }
+}
+
 /* Pump.fun-style live ticker (forge ticker strip on landing) */
 @keyframes forgex-ticker {
   0% { transform: translateX(0); }
