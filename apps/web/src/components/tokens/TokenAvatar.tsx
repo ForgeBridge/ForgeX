@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { resolveMediaUrl, getDeterministicGradient } from '../../lib/ipfs'
 
 export interface TokenAvatarProps {
@@ -28,6 +29,8 @@ export function TokenAvatar({
     xl: 'w-16 h-16 text-base',
   }
 
+  const sizePx = { sm: 28, md: 36, lg: 48, xl: 64 } as const
+
   const initials = (symbol || '?').slice(0, 2).toUpperCase()
   const gradient = getDeterministicGradient(symbol || 'DEFAULT')
 
@@ -35,13 +38,18 @@ export function TokenAvatar({
     return (
       <div
         className={`relative overflow-hidden rounded-md shrink-0 border border-border bg-muted ${sizeClasses[size]} ${className}`}
+        style={{ width: sizePx[size], height: sizePx[size] }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={resolvedUrl}
           alt={alt || `${symbol} token icon`}
-          className="w-full h-full object-cover"
+          width={sizePx[size]}
+          height={sizePx[size]}
+          sizes={`${sizePx[size]}px`}
           loading="lazy"
+          decoding="async"
+          unoptimized
+          className="w-full h-full object-cover"
           onError={() => setImageError(true)}
         />
       </div>
