@@ -35,6 +35,11 @@ export function resolveMediaUrl(uri?: string | null): string | null {
   return null
 }
 
+/**
+ * Functional identicon palettes — exempt from the monochrome design-system
+ * rule (see globals.css). Distinct hues per token symbol are intentional:
+ * they let traders tell meme tokens apart at a glance.
+ */
 const GRADIENT_PALETTES = [
   'from-amber-500 to-orange-600',
   'from-orange-500 to-red-600',
