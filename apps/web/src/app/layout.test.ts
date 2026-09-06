@@ -3,6 +3,7 @@ import { metadata } from './layout'
 
 vi.mock('geist/font/sans', () => ({ GeistSans: { variable: '' } }))
 vi.mock('geist/font/mono', () => ({ GeistMono: { variable: '' } }))
+vi.mock('next/font/google', () => ({ Outfit: () => ({ variable: '' }) }))
 
 describe('SEO Metadata Configuration', () => {
   it('defines comprehensive OpenGraph and Twitter metadata', () => {

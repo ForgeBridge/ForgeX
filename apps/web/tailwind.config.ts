@@ -8,6 +8,7 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-geist-sans)', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        display: ['var(--font-display)', 'var(--font-geist-sans)', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: 'var(--border)',
@@ -15,6 +16,11 @@ const config: Config = {
         ring: 'var(--ring)',
         background: 'var(--background)',
         foreground: 'var(--foreground)',
+        forge: {
+          DEFAULT: 'var(--forge)',
+          hover: 'var(--forge-hover)',
+          foreground: 'var(--forge-foreground)',
+        },
         primary: {
           DEFAULT: 'var(--primary)',
           foreground: 'var(--primary-foreground)',
@@ -67,6 +73,7 @@ const config: Config = {
         'scale-in': 'scaleIn 0.2s ease-out',
         shimmer: 'shimmer 2s infinite',
         'pulse-subtle': 'pulseSubtle 2s ease-in-out infinite',
+        ticker: 'forgexTicker 32s linear infinite',
       },
       keyframes: {
         fadeIn: {
@@ -96,6 +103,10 @@ const config: Config = {
         pulseSubtle: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.7' },
+        },
+        forgexTicker: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
         },
       },
     },

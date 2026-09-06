@@ -45,13 +45,14 @@ export function Header() {
             href="/"
             className="flex items-center gap-2 text-foreground"
           >
-            <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-forge flex items-center justify-center">
               <svg
-                className="w-4 h-4 text-primary-foreground"
+                className="w-4 h-4 text-forge-foreground"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={2}
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -60,23 +61,29 @@ export function Header() {
                 />
               </svg>
             </div>
-            <span className="text-base font-semibold tracking-tight">ForgeX</span>
+            <span className="text-base font-semibold tracking-tight font-display">ForgeX</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  pathname === link.href || (pathname || '').startsWith(link.href + '/')
-                    ? 'text-foreground bg-muted'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav aria-label="Primary" className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => {
+              const isActive =
+                pathname === link.href ||
+                (pathname || '').startsWith(link.href + '/')
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    isActive
+                      ? 'text-foreground bg-muted'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
           </nav>
         </div>
 
@@ -140,19 +147,25 @@ export function Header() {
             className="md:hidden overflow-hidden border-b border-border bg-background"
           >
             <div className="px-4 py-3 space-y-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`block px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                    pathname === link.href || (pathname || '').startsWith(link.href + '/')
-                      ? 'text-foreground bg-muted'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) => {
+                const isActive =
+                  pathname === link.href ||
+                  (pathname || '').startsWith(link.href + '/')
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`block px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'text-foreground bg-muted'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                )
+              })}
             </div>
             <div className="px-4 py-3 border-t border-border">
               <WalletConnect />
