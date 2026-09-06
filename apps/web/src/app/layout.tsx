@@ -1,6 +1,7 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
+import { Outfit } from 'next/font/google'
 import { ThemeProvider } from '../components/providers/ThemeProvider'
 import { Header } from '../components/layout/Header'
 import { EnvValidationBanner } from '../components/common/EnvValidationBanner'
@@ -8,6 +9,20 @@ import { WalletErrorBanner } from '../components/wallet/WalletErrorBanner'
 import { NetworkMismatchBanner } from '../components/wallet/NetworkMismatchBanner'
 import { ToastContainer } from '../components/ui/Toast'
 import '../styles/globals.css'
+
+const displayFont = Outfit({
+  subsets: ['latin'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+  ],
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://forgex.fi'),
@@ -56,16 +71,22 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://ipfs.io" crossOrigin="anonymous" />
+      </head>
       <body
-        className={`${GeistSans.variable} ${GeistMono.variable} min-h-screen bg-background text-foreground font-sans`}
+        className={`${GeistSans.variable} ${GeistMono.variable} ${displayFont.variable} min-h-screen bg-background text-foreground font-sans`}
       >
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
         <ThemeProvider>
           <div className="flex flex-col min-h-screen">
             <Header />
             <EnvValidationBanner />
             <NetworkMismatchBanner />
             <WalletErrorBanner />
-            <main className="flex-1">{children}</main>
+            <main id="main-content" className="flex-1">{children}</main>
             <ToastContainer />
             <footer className="border-t border-border bg-card py-8">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

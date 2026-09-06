@@ -11,6 +11,12 @@
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
+
+  /* Forge ember accent (pump.fun-on-Stellar identity: Stellar blue = trust,
+     ember orange = forge/launch CTA). Resolved by ui-ux-pro-max design-system. */
+  --forge: #ea580c;
+  --forge-hover: #c2410c;
+  --forge-foreground: #ffffff;
 }
 
 /* ── Dark Theme (Default) ── */
@@ -39,6 +45,9 @@
   --ring: #3f3f46;
   --success: #16a34a;
   --warning: #eab308;
+  --forge: #ea580c;
+  --forge-hover: #c2410c;
+  --forge-foreground: #ffffff;
 
   /* Chart colors */
   --chart-up: #16a34a;
@@ -72,6 +81,9 @@
   --ring: #d4d4d8;
   --success: #16a34a;
   --warning: #eab308;
+  --forge: #ea580c;
+  --forge-hover: #c2410c;
+  --forge-foreground: #ffffff;
 
   --chart-up: #16a34a;
   --chart-down: #dc2626;
@@ -88,6 +100,11 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
 }
 
 body {
@@ -95,6 +112,18 @@ body {
   color: var(--foreground);
   font-feature-settings: 'cv11', 'ss01', 'cv01';
   text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.2);
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }
 
 /* ── Selection ── */
@@ -144,6 +173,66 @@ body {
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* Pump.fun-style live ticker (forge ticker strip on landing) */
+@keyframes forgex-ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.forgex-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: forgex-ticker 32s linear infinite;
+}
+
+.forgex-ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* Forge ember CTA (launch actions) — distinct from trust-blue price links */
+.bg-forge {
+  background-color: var(--forge);
+}
+
+.text-forge {
+  color: var(--forge);
+}
+
+/* Skip link for keyboard users (web guidelines: headings + skip link) */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: top 0.15s ease-out;
+}
+
+.skip-link:focus-visible {
+  top: 1rem;
+}
+
+/* Modal/drawer scroll containment (web guidelines) */
+.modal-scroll-contained {
+  overscroll-behavior: contain;
+}
+
+/* Full-bleed safe-area padding for notched devices */
+.safe-area-x {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Numeric columns: tabular figures for price/market-cap comparisons */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Utility Classes ── */

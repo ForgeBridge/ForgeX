@@ -3,8 +3,11 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { TokenFeed } from '../components/tokens/TokenFeed'
+import { TickerBar } from '../components/tokens/TickerBar'
 import { Button } from '../components/ui/Button'
 
+// TODO: replace with on-chain stats from Factory contract (get_token_count,
+// reserve totals). Current values are static placeholders for layout.
 const stats = [
   { label: 'Total Tokens Launched', value: '1,247' },
   { label: 'Total Volume', value: '2.4M XLM' },
@@ -58,9 +61,13 @@ const item = {
 export default function HomePage() {
   return (
     <div className="relative">
+      <TickerBar />
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b border-border">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.03] to-transparent" />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-b from-primary/[0.06] via-transparent to-transparent"
+        />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -73,15 +80,14 @@ export default function HomePage() {
               Live on Stellar Testnet
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
-              Zero-liquidity{' '}
-              <span className="text-primary">fair launches</span>{' '}
-              on Stellar
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.05] text-balance">
+              Forge it. Trade it from block one.
             </h1>
 
             <p className="mt-5 text-lg text-muted-foreground max-w-xl leading-relaxed">
-              Launch and trade tokens with bonding curve mechanics on Soroban.
-              No upfront liquidity required. Every token starts from zero.
+              ForgeX is pump.fun on Stellar: launch a meme token on a bonding
+              curve in under a minute. No liquidity needed. Price moves with
+              every buy and sell on Soroban.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -89,9 +95,20 @@ export default function HomePage() {
                 <Button size="lg">Explore Tokens</Button>
               </Link>
               <Link href="/create">
-                <Button variant="secondary" size="lg">Create Token</Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="border-forge/40 text-forge hover:bg-forge/10"
+                >
+                  Forge a Token
+                </Button>
               </Link>
             </div>
+
+            <p className="mt-4 text-xs text-muted-foreground">
+              Fair launch · Exponential curve P(S) = P₀ × e^(k×S) · Sell back
+              into the reserve any time
+            </p>
           </motion.div>
         </div>
       </section>
@@ -112,7 +129,7 @@ export default function HomePage() {
                 variants={item}
                 className="py-6 px-4 sm:px-8 first:pl-0 last:pr-0"
               >
-                <div className="text-2xl sm:text-3xl font-bold text-foreground font-mono tracking-tight">
+                <div className="text-2xl sm:text-3xl font-bold text-foreground font-mono tracking-tight tnum">
                   {stat.value}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">{stat.label}</div>
@@ -156,9 +173,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-xl font-semibold text-foreground">Trending Tokens</h2>
+              <h2 className="font-display text-xl font-bold text-foreground">Trending Tokens</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Most active tokens on the bonding curve
+                Most active tokens on the bonding curve right now
               </p>
             </div>
             <Link href="/explore" className="text-sm text-primary hover:underline font-medium">
@@ -180,16 +197,16 @@ export default function HomePage() {
             transition={{ duration: 0.4 }}
             className="text-center max-w-xl mx-auto"
           >
-            <h2 className="text-2xl font-bold text-foreground">
-              Ready to launch your token?
+            <h2 className="font-display text-2xl font-bold text-foreground">
+              Ready to forge your token?
             </h2>
             <p className="mt-3 text-sm text-muted-foreground">
-              Create a bonding curve token on Stellar in under a minute. No
-              coding required.
+              Pick a name, pick a ticker, launch on a bonding curve. Traders
+              can buy and sell from block one.
             </p>
             <div className="mt-6">
               <Link href="/create">
-                <Button size="lg">Get Started</Button>
+                <Button size="lg">Forge a Token</Button>
               </Link>
             </div>
           </motion.div>
