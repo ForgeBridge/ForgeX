@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo, useId } from 'react'
 import {
   createChart,
   ColorType,
@@ -8,6 +8,7 @@ import {
   ISeriesApi,
   UTCTimestamp,
 } from 'lightweight-charts'
+import { useThemeStore } from '../../hooks/useTheme'
 
 export interface PricePoint {
   time: number
@@ -33,6 +34,21 @@ export function PriceChart({
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Area'> | null>(null)
   const [timeRange, setTimeRange] = useState<TimeRange>('24H')
+  const { theme } = useThemeStore()
+  const summaryId = useId()
+
+  const themeColors =
+    theme === 'light'
+      ? {
+          text: '#71717a',
+          grid: 'rgba(228, 228, 231, 0.9)',
+          border: 'rgba(228, 228, 231, 1)',
+        }
+      : {
+          text: '#a1a1aa',
+          grid: 'rgba(39, 39, 42, 0.5)',
+          border: 'rgba(39, 39, 42, 0.8)',
+        }
 
   const chartData = useMemo(() => {
     if (data && data.length > 0) {
@@ -84,25 +100,25 @@ export function PriceChart({
       height,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#a1a1aa',
+        textColor: themeColors.text,
         fontSize: 11,
         fontFamily: 'var(--font-geist-sans)',
       },
       grid: {
-        vertLines: { color: 'rgba(39, 39, 42, 0.5)' },
-        horzLines: { color: 'rgba(39, 39, 42, 0.5)' },
+        vertLines: { color: themeColors.grid },
+        horzLines: { color: themeColors.grid },
       },
       crosshair: {
         vertLine: { color: '#2563eb', width: 1, style: 3 },
         horzLine: { color: '#2563eb', width: 1, style: 3 },
       },
       timeScale: {
-        borderColor: 'rgba(39, 39, 42, 0.8)',
+        borderColor: themeColors.border,
         timeVisible: true,
         secondsVisible: false,
       },
       rightPriceScale: {
-        borderColor: 'rgba(39, 39, 42, 0.8)',
+        borderColor: themeColors.border,
         scaleMargins: { top: 0.15, bottom: 0.15 },
       },
     })
@@ -148,13 +164,20 @@ export function PriceChart({
         seriesRef.current = null
       }
     }
-  }, [filteredData, height])
+  }, [filteredData, height, theme, themeColors.border, themeColors.grid, themeColors.text])
+
+  const priceSummary = `${symbol} current price ${currentPrice} XLM over ${timeRange}. ${filteredData.length} data points.`
 
   return (
     <div
-      aria-label="Price Chart"
+      role="img"
+      aria-label={`${symbol} price chart`}
+      aria-describedby={summaryId}
       className="bg-card rounded-lg border border-border p-4 space-y-3"
     >
+      <p id={summaryId} className="sr-only">
+        {priceSummary}
+      </p>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-xs text-muted-foreground font-medium">
@@ -175,6 +198,8 @@ export function PriceChart({
                 key={range}
                 type="button"
                 onClick={() => setTimeRange(range)}
+                aria-pressed={timeRange === range}
+                aria-label={`Show ${range} price range`}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                   timeRange === range
                     ? 'bg-background text-foreground shadow-sm'

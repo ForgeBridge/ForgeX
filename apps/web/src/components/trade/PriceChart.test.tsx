@@ -34,20 +34,21 @@ describe('PriceChart', () => {
     render(<PriceChart symbol="FORGE" currentPrice="0.0025" />)
 
     expect(screen.getByText(/FORGE Price/i)).toBeInTheDocument()
-    expect(screen.getByText(/0.0025/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '1H' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '24H' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '7D' })).toBeInTheDocument()
+    expect(screen.getAllByText(/0.0025/i).length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'Show 1H price range' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show 24H price range' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show 7D price range' })).toBeInTheDocument()
     expect(screen.getByTestId('price-chart-canvas')).toBeInTheDocument()
   })
 
   it('allows switching time range filters', () => {
     render(<PriceChart symbol="FORGE" currentPrice="0.0025" />)
 
-    const btn7d = screen.getByRole('button', { name: '7D' })
+    const btn7d = screen.getByRole('button', { name: 'Show 7D price range' })
     fireEvent.click(btn7d)
 
     expect(btn7d).toHaveClass('bg-background')
+    expect(btn7d).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('handles custom data points', () => {
