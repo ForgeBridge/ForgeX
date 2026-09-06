@@ -28,9 +28,9 @@ export function Button({
   }
 
   const sizes = {
-    sm: 'h-8 px-3 text-xs',
-    md: 'h-9 px-4 text-sm',
-    lg: 'h-11 px-6 text-sm',
+    sm: 'h-8 px-3 text-xs min-h-[32px] [@media(pointer:coarse)]:min-h-[44px] [@media(pointer:coarse)]:px-4',
+    md: 'h-9 px-4 text-sm min-h-[36px] [@media(pointer:coarse)]:min-h-[44px]',
+    lg: 'h-11 px-6 text-sm min-h-[44px]',
   }
 
   return (

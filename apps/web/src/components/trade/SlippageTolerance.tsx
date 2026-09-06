@@ -67,7 +67,7 @@ export function SlippageTolerance({ value, onChange }: SlippageToleranceProps) {
               onClick={() => handleSelect(preset)}
               aria-pressed={isSelected}
               aria-label={`Set slippage to ${preset} percent`}
-              className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
+              className={`px-3 py-2 rounded text-xs font-medium border transition-colors ${
                 isSelected
                   ? 'bg-primary/10 border-primary text-primary'
                   : 'bg-muted border-border text-muted-foreground hover:text-foreground'

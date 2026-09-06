@@ -111,7 +111,7 @@ function ToastCard({ toast, onDismiss }: ToastCardProps) {
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss notification"
-        className="text-muted-foreground hover:text-foreground text-xs p-1 transition-colors rounded"
+        className="text-muted-foreground hover:text-foreground text-xs p-1 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors rounded"
       >
         ✕
       </button>
