@@ -1,4 +1,4 @@
-import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
+import { EthersAdapter } from '@reown/appkit-adapter-ethers'
 import {
   mainnet,
   arbitrum,
@@ -11,12 +11,18 @@ import {
  * Reown AppKit (multi-chain wallet rail) configuration.
  *
  * Stellar stays on Freighter via `hooks/useWallet`. EVM chains go through
- * AppKit's modal (600+ wallets). This file is the single place to grow:
+ * AppKit's modal (600+ wallets) using the lightweight ethers adapter —
+ * deliberately chosen over the wagmi adapter: same modal UX without the
+ * wagmi barrel's heavy transitive tree. This file is the single place
+ * to grow:
  *
  * - More EVM chains: import from `@reown/appkit/networks` and append to
  *   `evmNetworks` (must stay a non-empty tuple).
- * - Solana: `npm i @reown/appkit-adapter-solana`, add `new SolanaAdapter()`
- *   to the `adapters` array in `ReownProvider`, append solana networks.
+ * - Richer EVM hooks later: swap `EthersAdapter` for the wagmi adapter
+ *   (`@reown/appkit-adapter-wagmi` + `wagmi`/`viem`) — provider + hook
+ *   call sites stay the same shape.
+ * - Solana: `npm i @reown/appkit-adapter-solana`, append
+ *   `new SolanaAdapter()` to the `adapters` array in `ReownProvider`.
  * - Stellar via WalletConnect protocol later: use `UniversalConnector`
  *   (`@reown/appkit-universal-connector`) with a custom CAIP network
  *   (`stellar:pubnet` / `stellar:testnet`) alongside the adapters here.
@@ -46,10 +52,4 @@ export const reownMetadata = {
   icons: ['https://forgex.pxxl.click/icon.svg'],
 }
 
-export const wagmiAdapter = isReownConfigured
-  ? new WagmiAdapter({
-      ssr: true,
-      projectId: reownProjectId as string,
-      networks: evmNetworks,
-    })
-  : null
+export const ethersAdapter = isReownConfigured ? new EthersAdapter() : null

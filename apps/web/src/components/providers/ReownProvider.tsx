@@ -1,21 +1,17 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { WagmiProvider, type Config } from 'wagmi'
 import { createAppKit } from '@reown/appkit/react'
 import {
-  wagmiAdapter,
+  ethersAdapter,
   reownProjectId,
   evmNetworks,
   evmDefaultNetwork,
   reownMetadata,
 } from '../../lib/reown'
 
-const queryClient = new QueryClient()
-
-if (reownProjectId && wagmiAdapter) {
+if (reownProjectId && ethersAdapter) {
   createAppKit({
-    adapters: [wagmiAdapter],
+    adapters: [ethersAdapter],
     projectId: reownProjectId,
     networks: evmNetworks,
     defaultNetwork: evmDefaultNetwork,
@@ -27,15 +23,10 @@ if (reownProjectId && wagmiAdapter) {
 }
 
 /**
- * Mounts the Reown modal + wagmi providers when a project ID is configured.
- * Without one it renders children untouched so the Stellar flow keeps working.
+ * Initializes the Reown modal when a project ID is configured.
+ * The ethers adapter needs no extra providers, so this renders children
+ * untouched either way — without a project ID the Stellar flow is unaffected.
  */
 export function ReownProvider({ children }: { children: React.ReactNode }) {
-  if (!wagmiAdapter) return <>{children}</>
-
-  return (
-    <WagmiProvider config={wagmiAdapter.wagmiConfig as Config}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </WagmiProvider>
-  )
+  return <>{children}</>
 }
