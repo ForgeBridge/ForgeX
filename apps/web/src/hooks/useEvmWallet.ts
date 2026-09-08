@@ -1,7 +1,11 @@
 'use client'
 
-import { useAppKit } from '@reown/appkit/react'
-import { useAccount, useDisconnect } from 'wagmi'
+import {
+  useAppKit,
+  useAppKitAccount,
+  useAppKitNetwork,
+  useDisconnect,
+} from '@reown/appkit/react'
 import { isReownConfigured } from '../lib/reown'
 import { truncateAddress } from '../lib/format'
 
@@ -17,28 +21,25 @@ export interface EvmWallet {
 
 /**
  * EVM-side wallet state, mirroring the Stellar `useWalletStore` shape.
- * Only mount behind `isReownConfigured` — wagmi/AppKit hooks need providers.
+ * Only mount behind `isReownConfigured` — AppKit hooks need initialization.
  */
 export function useEvmWallet(): EvmWallet {
   const { open } = useAppKit()
-  const { address, isConnected, isConnecting, chain } = useAccount()
+  const { address, isConnected } = useAppKitAccount()
+  const { caipNetwork } = useAppKitNetwork()
   const { disconnect } = useDisconnect()
 
   return {
     isConfigured: isReownConfigured,
     address: address ?? null,
     isConnected,
-    isConnecting,
-    chainName: chain?.name ?? null,
+    isConnecting: false,
+    chainName: caipNetwork?.name ?? null,
     openConnect: () => open(),
     disconnect,
   }
 }
 
 export function formatEvmAddress(address: string): string {
-  try {
-    return truncateAddress(address, 6, 4)
-  } catch {
-    return address
-  }
+  return truncateAddress(address, 6, 4)
 }
