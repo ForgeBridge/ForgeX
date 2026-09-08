@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Journey } from './Journey'
 import { useJourneyStore } from './useJourney'
+import { useTokenStore } from '../../hooks/useToken'
 
 vi.mock('next/link', () => ({
   default: ({ children, href, onClick, className }: any) => (
@@ -14,6 +15,12 @@ vi.mock('next/link', () => ({
 describe('Journey', () => {
   beforeEach(() => {
     useJourneyStore.setState({ index: 0 })
+    useTokenStore.setState({
+      tokens: [],
+      loading: false,
+      error: null,
+      fetchTokens: vi.fn(),
+    })
   })
 
   it('renders the opening chapter with chrome', () => {
