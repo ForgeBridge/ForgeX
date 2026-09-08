@@ -8,7 +8,7 @@ export function OpeningChapter() {
 
   return (
     <div className="text-center">
-      <div className="mx-auto mb-8 flex h-[88px] w-[88px] items-center justify-center rounded-[22px] bg-forge shadow-elevated">
+      <div className="mx-auto mb-8 flex h-[88px] w-[88px] items-center justify-center rounded-2xl bg-forge shadow-elevated">
         <svg
           aria-hidden="true"
           className="h-10 w-10 text-forge-foreground"

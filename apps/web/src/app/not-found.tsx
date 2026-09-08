@@ -14,7 +14,7 @@ export default function NotFound() {
         </svg>
       </div>
 
-      <h1 className="text-4xl font-extrabold text-foreground mb-3">
+      <h1 className="font-display text-4xl font-extrabold tracking-tight text-foreground mb-3">
         404 — Page Not Found
       </h1>
 

@@ -38,7 +38,7 @@ export default function SettingsPage() {
         transition={{ duration: 0.3 }}
       >
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">Settings</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Configure your trading preferences
           </p>

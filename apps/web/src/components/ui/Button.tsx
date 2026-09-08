@@ -1,7 +1,7 @@
 'use client'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'forge'
   size?: 'sm' | 'md' | 'lg'
 }
 
@@ -13,7 +13,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    'inline-flex items-center justify-center font-medium rounded-md transition-colors transition-transform duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer'
+    'inline-flex items-center justify-center font-semibold tracking-tight rounded-md transition-colors transition-transform duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer'
 
   const variants = {
     primary:
@@ -23,6 +23,8 @@ export function Button({
     ghost: 'text-muted-foreground hover:text-foreground hover:bg-muted',
     danger:
       'bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/80',
+    forge:
+      'bg-transparent border border-forge/40 text-forge hover:bg-forge/10 hover:border-forge/60 active:bg-forge/20',
   }
 
   const sizes = {
