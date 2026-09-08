@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { TokenFeed } from '../components/tokens/TokenFeed'
 import { TickerBar } from '../components/tokens/TickerBar'
+import { ForgeCanvas } from '../components/hero/ForgeCanvas'
 import { Button } from '../components/ui/Button'
 
 // TODO: replace with on-chain stats from Factory contract (get_token_count,
@@ -61,36 +62,36 @@ const item = {
 export default function HomePage() {
   return (
     <div className="relative">
-      <TickerBar />
-      {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border">
+      {/* Immersive Hero */}
+      <section className="relative overflow-hidden border-b border-border min-h-[100dvh] flex items-center">
+        <ForgeCanvas className="absolute inset-0 h-full w-full" />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-b from-primary/[0.06] via-transparent to-transparent"
+          className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background"
         />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-28 text-center">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="max-w-3xl"
+            className="mx-auto max-w-3xl"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-subtle" />
               Live on Stellar Testnet
             </div>
 
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.05] text-balance">
+            <h1 className="font-display text-5xl sm:text-7xl lg:text-8xl font-extrabold tracking-tight text-foreground leading-[1.02] text-balance">
               Forge it. Trade it from block one.
             </h1>
 
-            <p className="mt-5 text-lg text-muted-foreground max-w-xl leading-relaxed">
+            <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
               ForgeX is pump.fun on Stellar: launch a meme token on a bonding
               curve in under a minute. No liquidity needed. Price moves with
               every buy and sell on Soroban.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link href="/explore">
                 <Button size="lg">Explore Tokens</Button>
               </Link>
@@ -105,13 +106,36 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <p className="mt-4 text-xs text-muted-foreground">
+            <p className="mt-6 text-xs text-muted-foreground">
               Fair launch · Exponential curve P(S) = P₀ × e^(k×S) · Sell back
               into the reserve any time
             </p>
           </motion.div>
         </div>
+        <a
+          href="#markets"
+          aria-label="Scroll to trending tokens"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span className="text-[11px] font-medium tracking-wide">Scroll</span>
+          <svg
+            aria-hidden="true"
+            className="w-4 h-4 animate-bounce"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"
+            />
+          </svg>
+        </a>
       </section>
+
+      <TickerBar />
 
       {/* Stats Bar */}
       <section className="border-b border-border bg-card/50">
@@ -169,7 +193,7 @@ export default function HomePage() {
       </section>
 
       {/* Trending Tokens Section */}
-      <section className="py-16 sm:py-20 border-t border-border">
+      <section id="markets" className="py-16 sm:py-20 border-t border-border scroll-mt-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <div>
