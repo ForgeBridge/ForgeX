@@ -12,7 +12,7 @@ vi.mock('next/link', () => ({
 }))
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
+  usePathname: () => '/explore',
 }))
 
 describe('Header Component', () => {

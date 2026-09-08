@@ -37,6 +37,9 @@ export function Header() {
     setMobileMenuOpen(false)
   }, [pathname])
 
+  // The homepage is a blank immersive journey with its own minimal chrome.
+  if (pathname === '/') return null
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
