@@ -3,6 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Outfit } from 'next/font/google'
 import { ThemeProvider } from '../components/providers/ThemeProvider'
+import { ReownProvider } from '../components/providers/ReownProvider'
 import { Header } from '../components/layout/Header'
 import { SiteFooter } from '../components/layout/SiteFooter'
 import { EnvValidationBanner } from '../components/common/EnvValidationBanner'
@@ -82,6 +83,7 @@ export default function RootLayout({
           Skip to content
         </a>
         <ThemeProvider>
+          <ReownProvider>
           <div className="flex flex-col min-h-screen">
             <Header />
             <EnvValidationBanner />
@@ -91,6 +93,7 @@ export default function RootLayout({
             <ToastContainer />
             <SiteFooter />
           </div>
+          </ReownProvider>
         </ThemeProvider>
       </body>
     </html>
