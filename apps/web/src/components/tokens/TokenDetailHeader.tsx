@@ -66,7 +66,7 @@ export function TokenDetailHeader({
           />
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+              <h1 className="font-display text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
                 {metadata.name}
               </h1>
               <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">

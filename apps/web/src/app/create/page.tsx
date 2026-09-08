@@ -12,7 +12,7 @@ export default function CreateTokenPage() {
         transition={{ duration: 0.3 }}
       >
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Create Token</h1>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">Create Token</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Launch a bonding curve token on Stellar in minutes.
           </p>

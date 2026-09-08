@@ -7,6 +7,19 @@
    Exception: token avatar identicons (lib/ipfs.ts) are functional
    color hashes for token distinguishability, exempt from the
    monochrome rule by design.
+   ── Type roles ───────────────────────────────────────────
+   font-display (Outfit): page + hero + dialog headings only
+   font-sans (Geist): body, labels, card titles
+   font-mono + .tnum: prices, market caps, stats, addresses
+   ── Shape scale ──────────────────────────────────────────
+   rounded-full: pills, badges, dots, avatar fallbacks
+   rounded-md: buttons, inputs, small marks
+   rounded-lg: cards, dialogs, logo tiles
+   rounded-2xl: hero marks (88px) and feature tiles only
+   ── Buttons (components/ui/Button) ───────────────────────
+   primary: main action · secondary: alternate · forge: ember
+   outline for launch CTAs · ghost: tertiary · danger: destructive
+   sm: dense rows · md: forms/dialogs · lg: page + journey CTAs
    ═══════════════════════════════════════════════════════════ */
 
 :root {

@@ -35,11 +35,7 @@ export function BeginChapter() {
           <Button size="lg">Explore Tokens</Button>
         </Link>
         <Link href="/create">
-          <Button
-            size="lg"
-            variant="secondary"
-            className="border-forge/40 text-forge hover:bg-forge/10"
-          >
+          <Button size="lg" variant="forge">
             Forge a Token
           </Button>
         </Link>
