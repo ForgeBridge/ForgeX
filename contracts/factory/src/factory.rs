@@ -102,7 +102,9 @@ impl FactoryContract {
 
     /// Transfers factory ownership to `new_admin`. Admin only.
     ///
-    /// After a successful call only `new_admin` can create or remove tokens.
+    /// After a successful call only `new_admin` can moderate the registry
+    /// (remove tokens) and manage factory config. Token creation itself is
+    /// permissionless and unaffected by this role.
     /// The new admin must already exist in the ledger so the role can never be
     /// handed to a dead address; otherwise `Err(InvalidAdminAddress)` is
     /// returned and ownership is unchanged. An `AdminChanged` event records
@@ -121,24 +123,28 @@ impl FactoryContract {
         Ok(())
     }
 
-    /// Registers a new token in the factory's public registry. Admin only.
+    /// Registers a new token in the factory's public registry. Permissionless:
+    /// any authenticated caller may forge a token by passing itself as
+    /// `creator`.
     ///
-    /// The token metadata is validated against the same constraints the token
-    /// contract enforces (1-32 byte name and symbol, decimals 0-255, a
-    /// non-negative max supply) so the registry can never hold a record that
-    /// could not exist as a real token. The deployed token and bonding curve
-    /// contract addresses supplied in `params` are verified to exist in the
-    /// ledger before they are recorded, so the registry can never reference a
-    /// dead address. A duplicate of an existing token (same address, name, or
-    /// symbol) is refused with `TokenExists` and changes nothing. Emits a
-    /// `TokenCreated` event carrying the full registry record, keyed by
-    /// creator and token address.
+    /// The caller authorizes via `creator.require_auth()`, so the registry
+    /// always records the true forger as `creator` — the factory admin has no
+    /// special forging privilege. The token metadata is validated against the
+    /// same constraints the token contract enforces (1-32 byte name and
+    /// symbol, decimals 0-255, a non-negative max supply) so the registry can
+    /// never hold a record that could not exist as a real token. The deployed
+    /// token and bonding curve contract addresses supplied in `params` are
+    /// verified to exist in the ledger before they are recorded, so the
+    /// registry can never reference a dead address. A duplicate of an
+    /// existing token (same address, name, or symbol) is refused with
+    /// `TokenExists` and changes nothing. Emits a `TokenCreated` event
+    /// carrying the full registry record, keyed by creator and token address.
     pub fn create_token(
         env: Env,
+        creator: Address,
         params: CreateTokenParams,
     ) -> Result<(Address, Address), ContractError> {
-        let admin = Self::read_admin(&env);
-        admin.require_auth();
+        creator.require_auth();
         Self::validate_params(&params)?;
         if !params.token_id.exists() {
             return Err(ContractError::InvalidTokenAddress);
@@ -152,7 +158,7 @@ impl FactoryContract {
         {
             return Err(ContractError::TokenExists);
         }
-        let creator = admin.clone();
+        let creator = creator.clone();
         let timestamp = env.ledger().timestamp();
         let info = TokenInfo {
             token_id: params.token_id.clone(),

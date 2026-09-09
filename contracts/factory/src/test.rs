@@ -61,13 +61,16 @@ fn test_create_token() {
     env.mock_all_auths();
     let admin = generate_address(&env);
     let (_id, client) = deploy_factory(&env, &admin);
+    // Any user — not just the factory admin — may forge a token.
+    let user = generate_address(&env);
     let token = registered_address(&env);
     let curve = registered_address(&env);
     let params = make_params(&env, &token, &curve, "Test Token", "TEST");
-    let (recorded_token, recorded_curve) = client.create_token(&params);
+    let (recorded_token, recorded_curve) = client.create_token(&user, &params);
     assert_eq!(recorded_token, token);
     assert_eq!(recorded_curve, curve);
     assert_eq!(client.get_token_count(), 1);
+    assert_eq!(client.get_token(&token).creator, user);
 }
 
 #[test]
@@ -76,15 +79,16 @@ fn test_token_created_emits_full_details() {
     env.mock_all_auths();
     let admin = generate_address(&env);
     let (id, client) = deploy_factory(&env, &admin);
+    let creator = generate_address(&env);
     let token = registered_address(&env);
     let curve = registered_address(&env);
     let params = make_params(&env, &token, &curve, "Test Token", "TEST");
-    client.create_token(&params);
+    client.create_token(&creator, &params);
 
     let expected = TokenInfo {
         token_id: token.clone(),
         curve_id: curve.clone(),
-        creator: admin.clone(),
+        creator: creator.clone(),
         name: String::from_str(&env, "Test Token"),
         symbol: String::from_str(&env, "TEST"),
         decimals: 7u32,
@@ -105,7 +109,7 @@ fn test_token_created_emits_full_details() {
                 soroban_sdk::vec![
                     &env,
                     Symbol::new(&env, "TokenCreated").into_val(&env),
-                    admin.clone().into_val(&env),
+                    creator.clone().into_val(&env),
                     token.clone().into_val(&env),
                 ],
                 expected.into_val(&env),
@@ -123,11 +127,11 @@ fn test_create_token_rejects_duplicate_by_address() {
     let token = registered_address(&env);
     let curve = registered_address(&env);
 
-    client.create_token(&make_params(&env, &token, &curve, "Alpha", "ALPHA"));
+    client.create_token(&admin, &make_params(&env, &token, &curve, "Alpha", "ALPHA"));
 
     // Same token address, different name/symbol.
     let dup = make_params(&env, &token, &registered_address(&env), "Beta", "BETA");
-    let result = client.try_create_token(&dup);
+    let result = client.try_create_token(&admin, &dup);
     assert_eq!(result.unwrap_err().unwrap(), ContractError::TokenExists);
     assert_eq!(client.get_token_count(), 1);
 }
@@ -141,7 +145,7 @@ fn test_create_token_rejects_duplicate_by_name() {
     let token = registered_address(&env);
     let curve = registered_address(&env);
 
-    client.create_token(&make_params(&env, &token, &curve, "Alpha", "ALPHA"));
+    client.create_token(&admin, &make_params(&env, &token, &curve, "Alpha", "ALPHA"));
 
     // Different address and symbol, same name.
     let dup = make_params(
@@ -151,7 +155,7 @@ fn test_create_token_rejects_duplicate_by_name() {
         "Alpha",
         "BETA",
     );
-    let result = client.try_create_token(&dup);
+    let result = client.try_create_token(&admin, &dup);
     assert_eq!(result.unwrap_err().unwrap(), ContractError::TokenExists);
     assert_eq!(client.get_token_count(), 1);
 }
@@ -165,7 +169,7 @@ fn test_create_token_rejects_duplicate_by_symbol() {
     let token = registered_address(&env);
     let curve = registered_address(&env);
 
-    client.create_token(&make_params(&env, &token, &curve, "Alpha", "ALPHA"));
+    client.create_token(&admin, &make_params(&env, &token, &curve, "Alpha", "ALPHA"));
 
     // Different address and name, same symbol.
     let dup = make_params(
@@ -175,7 +179,7 @@ fn test_create_token_rejects_duplicate_by_symbol() {
         "Beta",
         "ALPHA",
     );
-    let result = client.try_create_token(&dup);
+    let result = client.try_create_token(&admin, &dup);
     assert_eq!(result.unwrap_err().unwrap(), ContractError::TokenExists);
     assert_eq!(client.get_token_count(), 1);
 }
@@ -190,21 +194,27 @@ fn test_create_token_rejects_invalid_metadata() {
     let curve = registered_address(&env);
 
     assert!(client
-        .try_create_token(&make_params(&env, &token, &curve, "", "T"))
+        .try_create_token(&admin, &make_params(&env, &token, &curve, "", "T"))
         .is_err());
     assert!(client
-        .try_create_token(&make_params(&env, &token, &curve, "T", ""))
+        .try_create_token(&admin, &make_params(&env, &token, &curve, "T", ""))
         .is_err());
     assert!(client
-        .try_create_token(&make_params(&env, &token, &curve, &"n".repeat(33), "T"))
+        .try_create_token(
+            &admin,
+            &make_params(&env, &token, &curve, &"n".repeat(33), "T")
+        )
         .is_err());
     assert!(client
-        .try_create_token(&make_params(&env, &token, &curve, "T", &"s".repeat(33)))
+        .try_create_token(
+            &admin,
+            &make_params(&env, &token, &curve, "T", &"s".repeat(33))
+        )
         .is_err());
 
     let mut invalid_decimals = make_params(&env, &token, &curve, "T", "T");
     invalid_decimals.decimals = 256;
-    assert!(client.try_create_token(&invalid_decimals).is_err());
+    assert!(client.try_create_token(&admin, &invalid_decimals).is_err());
 
     // Nothing was recorded.
     assert_eq!(client.get_token_count(), 0);
@@ -221,7 +231,10 @@ fn test_create_token_rejects_negative_max_supply() {
     let mut params = make_params(&env, &token, &curve, "T", "T");
     params.max_supply = -1i128;
     assert_eq!(
-        client.try_create_token(&params).unwrap_err().unwrap(),
+        client
+            .try_create_token(&admin, &params)
+            .unwrap_err()
+            .unwrap(),
         ContractError::InvalidMetadata
     );
     assert_eq!(client.get_token_count(), 0);
@@ -238,12 +251,12 @@ fn test_create_token_rejects_oversized_image_uri_and_description() {
 
     let mut long_image = make_params(&env, &token, &curve, "T", "T");
     long_image.image_uri = String::from_str(&env, &"x".repeat(256));
-    let result = client.try_create_token(&long_image);
+    let result = client.try_create_token(&admin, &long_image);
     assert_eq!(result.unwrap_err().unwrap(), ContractError::InvalidMetadata);
 
     let mut long_description = make_params(&env, &token, &curve, "T", "T");
     long_description.description = String::from_str(&env, &"x".repeat(1025));
-    let result = client.try_create_token(&long_description);
+    let result = client.try_create_token(&admin, &long_description);
     assert_eq!(result.unwrap_err().unwrap(), ContractError::InvalidMetadata);
 
     // The 255-byte and 1024-byte maxima are still accepted.
@@ -263,8 +276,8 @@ fn test_create_token_rejects_oversized_image_uri_and_description() {
         "T2",
     );
     max_description.description = String::from_str(&env, &"x".repeat(1024));
-    assert!(client.try_create_token(&max_image).is_ok());
-    assert!(client.try_create_token(&max_description).is_ok());
+    assert!(client.try_create_token(&admin, &max_image).is_ok());
+    assert!(client.try_create_token(&admin, &max_description).is_ok());
     assert_eq!(client.get_token_count(), 2);
 }
 
@@ -282,7 +295,10 @@ fn test_create_token_rejects_invalid_curve_params() {
     let mut zero_price = base();
     zero_price.curve_params.initial_price = 0;
     assert_eq!(
-        client.try_create_token(&zero_price).unwrap_err().unwrap(),
+        client
+            .try_create_token(&admin, &zero_price)
+            .unwrap_err()
+            .unwrap(),
         ContractError::InvalidCurveParams
     );
 
@@ -290,7 +306,7 @@ fn test_create_token_rejects_invalid_curve_params() {
     negative_price.curve_params.initial_price = -1;
     assert_eq!(
         client
-            .try_create_token(&negative_price)
+            .try_create_token(&admin, &negative_price)
             .unwrap_err()
             .unwrap(),
         ContractError::InvalidCurveParams
@@ -300,7 +316,7 @@ fn test_create_token_rejects_invalid_curve_params() {
     zero_steepness.curve_params.steepness = 0;
     assert_eq!(
         client
-            .try_create_token(&zero_steepness)
+            .try_create_token(&admin, &zero_steepness)
             .unwrap_err()
             .unwrap(),
         ContractError::InvalidCurveParams
@@ -310,7 +326,7 @@ fn test_create_token_rejects_invalid_curve_params() {
     negative_reserve.curve_params.reserve_target = -1;
     assert_eq!(
         client
-            .try_create_token(&negative_reserve)
+            .try_create_token(&admin, &negative_reserve)
             .unwrap_err()
             .unwrap(),
         ContractError::InvalidCurveParams
@@ -329,13 +345,16 @@ fn test_pagination_preserves_creation_order() {
 
     let names = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"];
     for (i, name) in names.iter().enumerate() {
-        client.create_token(&make_params(
-            &env,
-            &registered_address(&env),
-            &registered_address(&env),
-            name,
-            &format!("S{i}"),
-        ));
+        client.create_token(
+            &admin,
+            &make_params(
+                &env,
+                &registered_address(&env),
+                &registered_address(&env),
+                name,
+                &format!("S{i}"),
+            ),
+        );
     }
 
     let all = client.get_all_tokens();
@@ -368,13 +387,16 @@ fn test_pagination_is_stable_across_window_sizes() {
 
     let names = ["A", "B", "C", "D", "E", "F", "G"];
     for (i, name) in names.iter().enumerate() {
-        client.create_token(&make_params(
-            &env,
-            &registered_address(&env),
-            &registered_address(&env),
-            name,
-            &format!("S{i}"),
-        ));
+        client.create_token(
+            &admin,
+            &make_params(
+                &env,
+                &registered_address(&env),
+                &registered_address(&env),
+                name,
+                &format!("S{i}"),
+            ),
+        );
     }
 
     // The whole registry, paged one-at-a-time, matches the whole registry
@@ -396,20 +418,26 @@ fn test_get_tokens_paginated_out_of_range() {
     env.mock_all_auths();
     let admin = generate_address(&env);
     let (_id, client) = deploy_factory(&env, &admin);
-    client.create_token(&make_params(
-        &env,
-        &registered_address(&env),
-        &registered_address(&env),
-        "T1",
-        "T1",
-    ));
-    client.create_token(&make_params(
-        &env,
-        &registered_address(&env),
-        &registered_address(&env),
-        "T2",
-        "T2",
-    ));
+    client.create_token(
+        &admin,
+        &make_params(
+            &env,
+            &registered_address(&env),
+            &registered_address(&env),
+            "T1",
+            "T1",
+        ),
+    );
+    client.create_token(
+        &admin,
+        &make_params(
+            &env,
+            &registered_address(&env),
+            &registered_address(&env),
+            "T2",
+            "T2",
+        ),
+    );
 
     // Offset beyond the end yields an empty page; a window crossing the end is
     // saturated to the registry tail.
@@ -432,7 +460,7 @@ fn test_create_token_rejects_unverified_token_address() {
         "Alpha",
         "ALPHA",
     );
-    let result = client.try_create_token(&missing_token);
+    let result = client.try_create_token(&admin, &missing_token);
     assert_eq!(
         result.unwrap_err().unwrap(),
         ContractError::InvalidTokenAddress
@@ -455,7 +483,7 @@ fn test_create_token_rejects_unverified_curve_address() {
         "Alpha",
         "ALPHA",
     );
-    let result = client.try_create_token(&missing_curve);
+    let result = client.try_create_token(&admin, &missing_curve);
     assert_eq!(
         result.unwrap_err().unwrap(),
         ContractError::InvalidCurveAddress
@@ -475,7 +503,7 @@ fn test_registry_records_verified_deployed_addresses() {
     let token = registered_address(&env);
     let curve = registered_address(&env);
     let (recorded_token, recorded_curve) =
-        client.create_token(&make_params(&env, &token, &curve, "Alpha", "ALPHA"));
+        client.create_token(&admin, &make_params(&env, &token, &curve, "Alpha", "ALPHA"));
 
     // The addresses recorded in the registry are exactly the verified,
     // deployed addresses supplied at creation.
@@ -493,27 +521,18 @@ fn test_remove_token() {
     let first = registered_address(&env);
     let second = registered_address(&env);
     let third = registered_address(&env);
-    client.create_token(&make_params(
-        &env,
-        &first,
-        &registered_address(&env),
-        "Alpha",
-        "ALPHA",
-    ));
-    client.create_token(&make_params(
-        &env,
-        &second,
-        &registered_address(&env),
-        "Beta",
-        "BETA",
-    ));
-    client.create_token(&make_params(
-        &env,
-        &third,
-        &registered_address(&env),
-        "Gamma",
-        "GAMMA",
-    ));
+    client.create_token(
+        &admin,
+        &make_params(&env, &first, &registered_address(&env), "Alpha", "ALPHA"),
+    );
+    client.create_token(
+        &admin,
+        &make_params(&env, &second, &registered_address(&env), "Beta", "BETA"),
+    );
+    client.create_token(
+        &admin,
+        &make_params(&env, &third, &registered_address(&env), "Gamma", "GAMMA"),
+    );
     assert_eq!(client.get_token_count(), 3);
 
     client.remove_token(&second);
@@ -574,13 +593,10 @@ fn test_has_token() {
     assert!(!client.has_token(&token));
     assert!(!client.has_token(&unknown));
 
-    client.create_token(&make_params(
-        &env,
-        &token,
-        &registered_address(&env),
-        "Alpha",
-        "ALPHA",
-    ));
+    client.create_token(
+        &admin,
+        &make_params(&env, &token, &registered_address(&env), "Alpha", "ALPHA"),
+    );
 
     assert!(client.has_token(&token));
     assert!(!client.has_token(&unknown));
@@ -594,7 +610,7 @@ fn test_get_token_by_name() {
     let (_id, client) = deploy_factory(&env, &admin);
     let token = registered_address(&env);
     let curve = registered_address(&env);
-    client.create_token(&make_params(&env, &token, &curve, "Alpha", "ALPHA"));
+    client.create_token(&admin, &make_params(&env, &token, &curve, "Alpha", "ALPHA"));
 
     let found = client.get_token_by_name(&String::from_str(&env, "Alpha"));
     assert_eq!(found.token_id, token);
@@ -617,7 +633,7 @@ fn test_get_token_by_symbol() {
     let (_id, client) = deploy_factory(&env, &admin);
     let token = registered_address(&env);
     let curve = registered_address(&env);
-    client.create_token(&make_params(&env, &token, &curve, "Alpha", "ALPHA"));
+    client.create_token(&admin, &make_params(&env, &token, &curve, "Alpha", "ALPHA"));
 
     let found = client.get_token_by_symbol(&String::from_str(&env, "ALPHA"));
     assert_eq!(found.token_id, token);
@@ -704,11 +720,38 @@ fn test_set_admin_rejects_non_existent_address() {
 }
 
 #[test]
-fn test_admin_only_operations_require_admin_auth() {
+fn test_create_token_is_permissionless_non_admin_can_forge() {
+    use soroban_sdk::testutils::{MockAuth, MockAuthInvoke};
+
     let env = Env::default();
-    // No mock_all_auths: the caller is the deployer test account, not the
-    // factory admin, so the admin `require_auth` fails and the `try_` call
-    // captures the failure.
+    let admin = generate_address(&env);
+    let (id, client) = deploy_factory(&env, &admin);
+    // A regular user authorizes as itself — never as the factory admin.
+    let creator = generate_address(&env);
+    let token = registered_address(&env);
+    let curve = registered_address(&env);
+    let params = make_params(&env, &token, &curve, "Community", "COMM");
+    env.mock_auths(&[MockAuth {
+        address: &creator,
+        invoke: &MockAuthInvoke {
+            contract: &id,
+            fn_name: "create_token",
+            args: (creator.clone(), params.clone()).into_val(&env),
+            sub_invokes: &[],
+        },
+    }]);
+    let (recorded_token, recorded_curve) = client.create_token(&creator, &params);
+    assert_eq!(recorded_token, token);
+    assert_eq!(recorded_curve, curve);
+    assert_eq!(client.get_token(&token).creator, creator);
+    assert_eq!(client.get_token_count(), 1);
+}
+
+#[test]
+fn test_create_token_requires_creator_auth() {
+    let env = Env::default();
+    // No mock_all_auths: nobody authorizes as `creator`, so the
+    // `creator.require_auth()` fails and the `try_` call captures it.
     let admin = generate_address(&env);
     let (_id, client) = deploy_factory(&env, &admin);
 
@@ -719,7 +762,19 @@ fn test_admin_only_operations_require_admin_auth() {
         "Alpha",
         "ALPHA",
     );
-    assert!(client.try_create_token(&params).is_err());
+    assert!(client.try_create_token(&admin, &params).is_err());
+    assert_eq!(client.get_token_count(), 0);
+}
+
+#[test]
+fn test_set_admin_requires_admin_auth() {
+    let env = Env::default();
+    // No mock_all_auths: the caller is the deployer test account, not the
+    // factory admin, so the admin `require_auth` fails and the `try_` call
+    // captures the failure.
+    let admin = generate_address(&env);
+    let (_id, client) = deploy_factory(&env, &admin);
+
     assert!(client.try_set_admin(&registered_address(&env)).is_err());
 }
 
@@ -731,27 +786,36 @@ fn test_token_count_tracks_registrations() {
     let (_id, client) = deploy_factory(&env, &admin);
     assert_eq!(client.get_token_count(), 0);
 
-    client.create_token(&make_params(
-        &env,
-        &registered_address(&env),
-        &registered_address(&env),
-        "Alpha",
-        "ALPHA",
-    ));
-    client.create_token(&make_params(
-        &env,
-        &registered_address(&env),
-        &registered_address(&env),
-        "Beta",
-        "BETA",
-    ));
-    client.create_token(&make_params(
-        &env,
-        &registered_address(&env),
-        &registered_address(&env),
-        "Gamma",
-        "GAMMA",
-    ));
+    client.create_token(
+        &admin,
+        &make_params(
+            &env,
+            &registered_address(&env),
+            &registered_address(&env),
+            "Alpha",
+            "ALPHA",
+        ),
+    );
+    client.create_token(
+        &admin,
+        &make_params(
+            &env,
+            &registered_address(&env),
+            &registered_address(&env),
+            "Beta",
+            "BETA",
+        ),
+    );
+    client.create_token(
+        &admin,
+        &make_params(
+            &env,
+            &registered_address(&env),
+            &registered_address(&env),
+            "Gamma",
+            "GAMMA",
+        ),
+    );
     assert_eq!(client.get_token_count(), 3);
 
     // A rejected duplicate does not move the count.
@@ -762,7 +826,7 @@ fn test_token_count_tracks_registrations() {
         "Alpha",
         "OTHER",
     );
-    assert!(client.try_create_token(&dup).is_err());
+    assert!(client.try_create_token(&admin, &dup).is_err());
     assert_eq!(client.get_token_count(), 3);
 }
 
