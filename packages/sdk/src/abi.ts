@@ -41,8 +41,25 @@ export function bytes(value: Uint8Array | ArrayBuffer | Buffer): xdr.ScVal {
   )
 }
 
+export function bytesN32(value: string): xdr.ScVal {
+  // 32-byte hash (e.g. a WASM hash) as a hex string.
+  const hex = value.startsWith('0x') ? value.slice(2) : value
+  return xdr.ScVal.scvBytes(Buffer.from(hex, 'hex'))
+}
+
 export function vec(values: xdr.ScVal[]): xdr.ScVal {
   return xdr.ScVal.scvVec(values)
+}
+
+/**
+ * Encodes a Soroban `contracttype` struct as an ScMap with Symbol keys.
+ * Structs decode from maps (not vecs) on-chain; key order is irrelevant.
+ */
+export function structVal(fields: Record<string, xdr.ScVal>): xdr.ScVal {
+  const entries = Object.entries(fields).map(
+    ([key, val]) => new xdr.ScMapEntry({ key: symbol(key), val }),
+  )
+  return xdr.ScVal.scvMap(entries)
 }
 
 export function toNative(value: xdr.ScVal | undefined): unknown {

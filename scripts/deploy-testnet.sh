@@ -14,6 +14,22 @@ export SOROBAN_ACCOUNT="${SOROBAN_ACCOUNT:?SOROBAN_ACCOUNT (deployer secret key)
 echo "Building contracts..."
 ./scripts/build-contracts.sh
 
+echo "Uploading Token WASM..."
+TOKEN_WASM_HASH=$(soroban contract upload \
+  --wasm target/wasm32v1-none/release/forgex_token.wasm \
+  --rpc-url "$SOROBAN_RPC_URL" \
+  --network-passphrase "$SOROBAN_NETWORK_PASSPHRASE" \
+  --source-account "$SOROBAN_ACCOUNT")
+echo "Token WASM hash: $TOKEN_WASM_HASH"
+
+echo "Uploading Bonding Curve WASM..."
+CURVE_WASM_HASH=$(soroban contract upload \
+  --wasm target/wasm32v1-none/release/forgex_bonding_curve.wasm \
+  --rpc-url "$SOROBAN_RPC_URL" \
+  --network-passphrase "$SOROBAN_NETWORK_PASSPHRASE" \
+  --source-account "$SOROBAN_ACCOUNT")
+echo "Bonding Curve WASM hash: $CURVE_WASM_HASH"
+
 echo "Deploying Factory contract..."
 FACTORY_ID=$(soroban contract deploy \
   --wasm target/wasm32v1-none/release/forgex_factory.wasm \
@@ -22,16 +38,18 @@ FACTORY_ID=$(soroban contract deploy \
   --source-account "$SOROBAN_ACCOUNT")
 echo "Factory contract ID: $FACTORY_ID"
 
-echo "Initializing Factory..."
+echo "Initializing Factory (admin + trusted WASM hashes)..."
 soroban contract invoke \
   --id "$FACTORY_ID" \
   --rpc-url "$SOROBAN_RPC_URL" \
   --network-passphrase "$SOROBAN_NETWORK_PASSPHRASE" \
   --source-account "$SOROBAN_ACCOUNT" \
   -- initialize \
-  --admin "$SOROBAN_ACCOUNT"
+  --admin "$SOROBAN_ACCOUNT" \
+  --token-wasm-hash "$TOKEN_WASM_HASH" \
+  --curve-wasm-hash "$CURVE_WASM_HASH"
 
-echo "Deploying Bonding Curve contract..."
+echo "Deploying standalone Bonding Curve contract (legacy trading singleton)..."
 BONDING_CURVE_ID=$(soroban contract deploy \
   --wasm target/wasm32v1-none/release/forgex_bonding_curve.wasm \
   --rpc-url "$SOROBAN_RPC_URL" \
@@ -45,6 +63,8 @@ SOROBAN_RPC_URL=$SOROBAN_RPC_URL
 SOROBAN_NETWORK_PASSPHRASE=$SOROBAN_NETWORK_PASSPHRASE
 FACTORY_CONTRACT_ID=$FACTORY_ID
 BONDING_CURVE_CONTRACT_ID=$BONDING_CURVE_ID
+TOKEN_WASM_HASH=$TOKEN_WASM_HASH
+CURVE_WASM_HASH=$CURVE_WASM_HASH
 ENV
 
 echo "Deployment complete. Contract IDs saved to .env.testnet"

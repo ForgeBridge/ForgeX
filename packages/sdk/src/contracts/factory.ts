@@ -1,7 +1,7 @@
 import { scValToNative, xdr } from '@stellar/stellar-sdk'
 
 import type { InvokeOptions, ReadOptions, SorobanClient } from '../client'
-import { address, i128, u32, u64, vec } from '../abi'
+import { address, bytesN32, i128, structVal, u32, u64 } from '../abi'
 import type { CreateTokenParams, TokenInfo } from '../types/token'
 import type { CurveParams } from '../types/curve'
 
@@ -13,18 +13,30 @@ export class FactoryClient {
 
   async initialize(
     admin: string,
+    tokenWasmHash: string,
+    curveWasmHash: string,
     options: InvokeOptions,
   ): Promise<void> {
-    await this.invoke('initialize', [address(admin)], options)
+    await this.invoke(
+      'initialize',
+      [address(admin), bytesN32(tokenWasmHash), bytesN32(curveWasmHash)],
+      options,
+    )
   }
 
+  /**
+   * Forges a token in one call: the factory deploys the token + bonding
+   * curve contracts, initializes the curve, and registers the pair.
+   * `creator` must authorize (it becomes admin of both deployed contracts).
+   */
   async createToken(
+    creator: string,
     params: CreateTokenParams,
     options: InvokeOptions,
   ): Promise<{ tokenId: string; curveId: string }> {
     const result = await this.invoke(
       'create_token',
-      [this.encodeCreateTokenParams(params)],
+      [address(creator), this.encodeCreateTokenParams(params)],
       options,
     )
     const native = result.retval
@@ -82,25 +94,23 @@ export class FactoryClient {
   }
 
   private encodeCreateTokenParams(params: CreateTokenParams): xdr.ScVal {
-    return vec([
-      address(params.token_id),
-      address(params.curve_id),
-      xdr.ScVal.scvString(params.name),
-      xdr.ScVal.scvString(params.symbol),
-      u32(params.decimals),
-      i128(params.max_supply),
-      xdr.ScVal.scvString(params.image_uri),
-      xdr.ScVal.scvString(params.description),
-      this.encodeCurveParams(params.curve_params),
-    ])
+    return structVal({
+      name: xdr.ScVal.scvString(params.name),
+      symbol: xdr.ScVal.scvString(params.symbol),
+      decimals: u32(params.decimals),
+      max_supply: i128(params.max_supply),
+      image_uri: xdr.ScVal.scvString(params.image_uri),
+      description: xdr.ScVal.scvString(params.description),
+      curve_params: this.encodeCurveParams(params.curve_params),
+    })
   }
 
   private encodeCurveParams(params: CurveParams): xdr.ScVal {
-    return vec([
-      i128(params.initial_price),
-      i128(params.steepness),
-      i128(params.reserve_target),
-    ])
+    return structVal({
+      initial_price: i128(params.initial_price),
+      steepness: i128(params.steepness),
+      reserve_target: i128(params.reserve_target),
+    })
   }
 
   private decodeTokenInfo(native: unknown): TokenInfo {

@@ -97,8 +97,6 @@ export function CreateTokenForm() {
     try {
       const factoryId = FACTORY_CONTRACT_ID || 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM'
       const params = {
-        token_id: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM',
-        curve_id: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM',
         name: name.trim(),
         symbol: symbol.trim().toUpperCase(),
         decimals: parseInt(decimals, 10) || 7,
@@ -114,7 +112,7 @@ export function CreateTokenForm() {
 
       const freighter = await import('@stellar/freighter-api')
       const result = await soroban
-        .createToken(factoryId, params, {
+        .createToken(factoryId, address, params, {
           sourceAccount: address,
           signers: [
             async (xdr: string) => {

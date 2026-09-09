@@ -20,16 +20,11 @@ pub enum ContractError {
     /// The bonding curve parameters were invalid (non-positive price or
     /// steepness, or a negative reserve target).
     InvalidCurveParams = 4,
-    /// A token with the same contract address, name, or symbol is already
-    /// registered.
+    /// A token with the same name or symbol is already registered. (Every
+    /// forge deploys fresh contracts, so addresses are always unique.)
     TokenExists = 5,
     /// No token with the requested address, name, or symbol is registered.
     TokenNotFound = 6,
-    /// The supplied token contract address does not exist in the ledger.
-    InvalidTokenAddress = 7,
-    /// The supplied bonding curve contract address does not exist in the
-    /// ledger.
-    InvalidCurveAddress = 8,
     /// The admin address supplied to `set_admin` does not exist in the ledger.
     InvalidAdminAddress = 9,
 }
