@@ -19,6 +19,9 @@
               "function_name": "create_token",
               "args": [
                 {
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                },
+                {
                   "map": [
                     {
                       "key": {
