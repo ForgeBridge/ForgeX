@@ -28,6 +28,10 @@ jobs:
           components: clippy, rustfmt
       - name: Build
         run: cargo build --release -p forgex-token -p forgex-factory -p forgex-bonding-curve
+      - name: Build WASM (embedded by factory tests)
+        run: |
+          rustup target add wasm32v1-none
+          ./scripts/build-contracts.sh
       - name: Test
         run: cargo test --lib -p forgex-token -p forgex-factory -p forgex-bonding-curve
       - name: Clippy

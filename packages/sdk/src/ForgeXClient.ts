@@ -45,13 +45,14 @@ export class ForgeXClient {
     return new BondingCurveClient(this.client, contractId)
   }
 
-  /** Highest convenience: create a token through the factory in one call. */
+  /** Highest convenience: forge a token through the factory in one call. */
   async createToken(
     factoryId: string,
+    creator: string,
     params: CreateTokenParams,
     options: InvokeOptions,
   ): Promise<{ tokenId: string; curveId: string }> {
-    return this.factory(factoryId).createToken(params, options)
+    return this.factory(factoryId).createToken(creator, params, options)
   }
 
   /** Highest convenience: fetch a registered token's public record. */

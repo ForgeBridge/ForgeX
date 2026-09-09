@@ -1,4 +1,6 @@
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Symbol, Vec};
+use soroban_sdk::{
+    contract, contractimpl, contracttype, Address, BytesN, Env, IntoVal, String, Symbol, Vec,
+};
 
 use crate::error::ContractError;
 
@@ -13,15 +15,15 @@ pub struct CurveParams {
     pub reserve_target: i128,
 }
 
-/// Everything needed to register a new token through
+/// Everything needed to forge a new token through
 /// [`FactoryContract::create_token`].
+///
+/// The caller supplies only metadata and curve configuration. The factory
+/// deploys the token and bonding curve contracts itself, so the caller never
+/// handles contract addresses directly.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct CreateTokenParams {
-    /// Address of the already-deployed token contract to register.
-    pub token_id: Address,
-    /// Address of the already-deployed bonding curve contract to register.
-    pub curve_id: Address,
     /// Display name of the token (1-32 bytes).
     pub name: String,
     /// Ticker symbol of the token (1-32 bytes).
@@ -83,21 +85,64 @@ pub struct FactoryContract;
 
 #[contractimpl]
 impl FactoryContract {
-    /// Configures the factory's admin. Must be called once, by the deploying
+    /// Configures the factory's admin and the WASM blobs used to deploy new
+    /// tokens and bonding curves. Must be called once, by the deploying
     /// account, before any tokens can be created. Returns
-    /// `AlreadyInitialized` if the factory has already been configured, so the
-    /// admin role can never be stolen through a second call.
-    pub fn initialize(env: Env, admin: Address) -> Result<(), ContractError> {
+    /// `AlreadyInitialized` if the factory has already been configured, so
+    /// the admin role and the trusted WASM hashes can never be overwritten
+    /// through a second call.
+    pub fn initialize(
+        env: Env,
+        admin: Address,
+        token_wasm_hash: BytesN<32>,
+        curve_wasm_hash: BytesN<32>,
+    ) -> Result<(), ContractError> {
         if env.storage().instance().has(&"admin") {
             return Err(ContractError::AlreadyInitialized);
         }
         env.storage().instance().set(&"admin", &admin);
+        env.storage()
+            .instance()
+            .set(&"token_wasm", &token_wasm_hash);
+        env.storage()
+            .instance()
+            .set(&"curve_wasm", &curve_wasm_hash);
         Ok(())
     }
 
     /// Returns the current factory admin. Publicly queryable.
     pub fn get_admin(env: Env) -> Address {
         Self::read_admin(&env)
+    }
+
+    /// Returns the WASM hash the factory deploys token contracts from.
+    /// Publicly queryable.
+    pub fn get_token_wasm(env: Env) -> BytesN<32> {
+        env.storage().instance().get(&"token_wasm").unwrap()
+    }
+
+    /// Returns the WASM hash the factory deploys bonding curve contracts
+    /// from. Publicly queryable.
+    pub fn get_curve_wasm(env: Env) -> BytesN<32> {
+        env.storage().instance().get(&"curve_wasm").unwrap()
+    }
+
+    /// Updates the token WASM hash used for future deployments. Admin only.
+    /// Existing tokens are unaffected.
+    pub fn set_token_wasm(env: Env, wasm_hash: BytesN<32>) -> Result<(), ContractError> {
+        let admin = Self::read_admin(&env);
+        admin.require_auth();
+        env.storage().instance().set(&"token_wasm", &wasm_hash);
+        Ok(())
+    }
+
+    /// Updates the bonding curve WASM hash used for future deployments.
+    /// Admin only. Existing curves are unaffected.
+    pub fn set_curve_wasm(env: Env, wasm_hash: BytesN<32>) -> Result<(), ContractError> {
+        let admin = Self::read_admin(&env);
+        admin.require_auth();
+        env.storage().instance().set(&"curve_wasm", &wasm_hash);
+        Ok(())
     }
 
     /// Transfers factory ownership to `new_admin`. Admin only.
@@ -123,22 +168,24 @@ impl FactoryContract {
         Ok(())
     }
 
-    /// Registers a new token in the factory's public registry. Permissionless:
-    /// any authenticated caller may forge a token by passing itself as
-    /// `creator`.
+    /// Forges a new token: deploys its token and bonding curve contracts,
+    /// initializes the curve, and registers the pair in the factory's public
+    /// registry. Permissionless: any authenticated caller may forge a token
+    /// by passing itself as `creator`.
     ///
     /// The caller authorizes via `creator.require_auth()`, so the registry
     /// always records the true forger as `creator` — the factory admin has no
-    /// special forging privilege. The token metadata is validated against the
-    /// same constraints the token contract enforces (1-32 byte name and
-    /// symbol, decimals 0-255, a non-negative max supply) so the registry can
-    /// never hold a record that could not exist as a real token. The deployed
-    /// token and bonding curve contract addresses supplied in `params` are
-    /// verified to exist in the ledger before they are recorded, so the
-    /// registry can never reference a dead address. A duplicate of an
-    /// existing token (same address, name, or symbol) is refused with
-    /// `TokenExists` and changes nothing. Emits a `TokenCreated` event
-    /// carrying the full registry record, keyed by creator and token address.
+    /// special forging privilege. The creator becomes the admin of both
+    /// deployed contracts (token mint/burn authority and curve fee/limit
+    /// authority), so each forged token is self-sovereign from birth.
+    ///
+    /// The token metadata is validated against the same constraints the token
+    /// contract enforces (1-32 byte name and symbol, decimals 0-255, a
+    /// non-negative max supply) so the registry can never hold a record that
+    /// could not exist as a real token. A duplicate name or symbol is refused
+    /// with `TokenExists` and nothing is deployed. Emits a `TokenCreated`
+    /// event carrying the full registry record, keyed by creator and token
+    /// address. Returns the freshly deployed `(token_id, curve_id)`.
     pub fn create_token(
         env: Env,
         creator: Address,
@@ -146,23 +193,52 @@ impl FactoryContract {
     ) -> Result<(Address, Address), ContractError> {
         creator.require_auth();
         Self::validate_params(&params)?;
-        if !params.token_id.exists() {
-            return Err(ContractError::InvalidTokenAddress);
-        }
-        if !params.curve_id.exists() {
-            return Err(ContractError::InvalidCurveAddress);
-        }
-        if Registry::has(&env, &params.token_id)
-            || Registry::has_name(&env, &params.name)
-            || Registry::has_symbol(&env, &params.symbol)
-        {
+        if Registry::has_name(&env, &params.name) || Registry::has_symbol(&env, &params.symbol) {
             return Err(ContractError::TokenExists);
         }
+
+        let token_wasm: BytesN<32> = env.storage().instance().get(&"token_wasm").unwrap();
+        let curve_wasm: BytesN<32> = env.storage().instance().get(&"curve_wasm").unwrap();
+        let nonce = Self::next_nonce(&env);
+
+        // Deploy the token with its constructor args: the creator becomes the
+        // token admin (mint/burn authority).
+        let token_id: Address = env
+            .deployer()
+            .with_current_contract(Self::salt(&env, nonce, 0x01))
+            .deploy_v2(
+                token_wasm,
+                (
+                    creator.clone(),
+                    params.name.clone(),
+                    params.symbol.clone(),
+                    params.decimals,
+                    params.max_supply,
+                ),
+            );
+
+        // Deploy the curve (no constructor) and initialize it for the new
+        // token with the creator as curve admin (fee/limit authority).
+        let curve_id: Address = env
+            .deployer()
+            .with_current_contract(Self::salt(&env, nonce, 0x02))
+            .deploy_v2(curve_wasm, ());
+        env.invoke_contract::<()>(
+            &curve_id,
+            &Symbol::new(&env, "initialize"),
+            soroban_sdk::vec![
+                &env,
+                token_id.clone().into_val(&env),
+                params.curve_params.clone().into_val(&env),
+                creator.clone().into_val(&env),
+            ],
+        );
+
         let creator = creator.clone();
         let timestamp = env.ledger().timestamp();
         let info = TokenInfo {
-            token_id: params.token_id.clone(),
-            curve_id: params.curve_id.clone(),
+            token_id: token_id.clone(),
+            curve_id: curve_id.clone(),
             creator,
             name: params.name,
             symbol: params.symbol,
@@ -179,11 +255,11 @@ impl FactoryContract {
             (
                 Symbol::new(&env, "TokenCreated"),
                 info.creator.clone(),
-                params.token_id.clone(),
+                token_id.clone(),
             ),
             info,
         );
-        Ok((params.token_id, params.curve_id))
+        Ok((token_id, curve_id))
     }
 
     /// Returns whether a token with `token_id` is registered. Publicly
@@ -252,6 +328,29 @@ impl FactoryContract {
     /// which cannot happen because every operation requires an admin.
     fn read_admin(env: &Env) -> Address {
         env.storage().instance().get(&"admin").unwrap()
+    }
+
+    /// Returns a fresh deployment nonce and bumps the stored counter. The
+    /// counter only moves forward (removals do not decrement it), so every
+    /// forged token deploys at unique addresses even across removals in the
+    /// same ledger.
+    fn next_nonce(env: &Env) -> u64 {
+        let nonce: u64 = env.storage().instance().get(&"deploy_nonce").unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&"deploy_nonce", &nonce.saturating_add(1));
+        nonce
+    }
+
+    /// Derives a deterministic deployment salt from the nonce, the current
+    /// ledger sequence, and a per-contract tag (token vs. curve), so the two
+    /// contracts forged in one call land at distinct addresses.
+    fn salt(env: &Env, nonce: u64, tag: u8) -> BytesN<32> {
+        let mut bytes = [0u8; 32];
+        bytes[0..8].copy_from_slice(&nonce.to_be_bytes());
+        bytes[8..12].copy_from_slice(&env.ledger().sequence().to_be_bytes());
+        bytes[31] = tag;
+        BytesN::from_array(env, &bytes)
     }
 
     /// Validates create input before anything is written to the registry.
