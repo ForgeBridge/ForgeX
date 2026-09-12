@@ -169,7 +169,7 @@ impl FactoryContract {
     }
 
     /// Forges a new token: deploys its token and bonding curve contracts,
-    /// initializes the curve, and registers the pair in the factory's public
+    /// initializes both, and registers the pair in the factory's public
     /// registry. Permissionless: any authenticated caller may forge a token
     /// by passing itself as `creator`.
     ///
@@ -201,21 +201,26 @@ impl FactoryContract {
         let curve_wasm: BytesN<32> = env.storage().instance().get(&"curve_wasm").unwrap();
         let nonce = Self::next_nonce(&env);
 
-        // Deploy the token with its constructor args: the creator becomes the
-        // token admin (mint/burn authority).
+        // Deploy the token shell (no constructor args — the network rejects
+        // address-bearing constructors passed through a cross-contract
+        // `deploy_v2`) and initialize it for the new token with the creator
+        // as token admin (mint/burn authority).
         let token_id: Address = env
             .deployer()
             .with_current_contract(Self::salt(&env, nonce, 0x01))
-            .deploy_v2(
-                token_wasm,
-                (
-                    creator.clone(),
-                    params.name.clone(),
-                    params.symbol.clone(),
-                    params.decimals,
-                    params.max_supply,
-                ),
-            );
+            .deploy_v2(token_wasm, ());
+        env.invoke_contract::<()>(
+            &token_id,
+            &Symbol::new(&env, "initialize"),
+            soroban_sdk::vec![
+                &env,
+                creator.clone().into_val(&env),
+                params.name.clone().into_val(&env),
+                params.symbol.clone().into_val(&env),
+                params.decimals.into_val(&env),
+                params.max_supply.into_val(&env),
+            ],
+        );
 
         // Deploy the curve (no constructor) and initialize it for the new
         // token with the creator as curve admin (fee/limit authority).
