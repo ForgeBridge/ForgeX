@@ -2,10 +2,10 @@ extern crate std;
 
 use soroban_sdk::testutils::{self, Events};
 use soroban_sdk::{
-    contract, contractimpl, symbol_short, Address, Bytes, BytesN, Env, IntoVal, String, Symbol, Val,
+    contract, contractimpl, symbol_short, Address, Bytes, BytesN, Env, IntoVal, String, Symbol,
 };
 
-use crate::token::{TokenContract, TokenContractArgs, TokenContractClient};
+use crate::token::{TokenContract, TokenContractClient};
 use crate::upgrade::InterfaceVersion;
 
 fn generate_address(env: &Env) -> Address {
@@ -18,56 +18,50 @@ fn deploy_token_with_max_supply<'a>(
     admin: &Address,
     max_supply: i128,
 ) -> (Address, TokenContractClient<'a>) {
-    let contract_id = env.register(
-        TokenContract,
-        TokenContractArgs::__constructor(
-            admin,
-            &String::from_str(env, "Test Token"),
-            &String::from_str(env, "TEST"),
-            &7u32,
-            &max_supply,
-        ),
-    );
+    let contract_id = env.register(TokenContract, ());
     let client = TokenContractClient::new(env, &contract_id);
+    client.initialize(
+        admin,
+        &String::from_str(env, "Test Token"),
+        &String::from_str(env, "TEST"),
+        &7u32,
+        &max_supply,
+    );
     (contract_id, client)
 }
 
 fn deploy_token<'a>(env: &'a Env, admin: &Address) -> (Address, TokenContractClient<'a>) {
-    let contract_id = env.register(
-        TokenContract,
-        TokenContractArgs::__constructor(
-            admin,
-            &String::from_str(env, "Test Token"),
-            &String::from_str(env, "TEST"),
-            &7u32,
-            &10_000_000_000_000_000i128,
-        ),
-    );
+    let contract_id = env.register(TokenContract, ());
     let client = TokenContractClient::new(env, &contract_id);
+    client.initialize(
+        admin,
+        &String::from_str(env, "Test Token"),
+        &String::from_str(env, "TEST"),
+        &7u32,
+        &10_000_000_000_000_000i128,
+    );
     (contract_id, client)
 }
 
 #[test]
-fn test_constructor_rejects_invalid_metadata() {
+fn test_initialize_rejects_invalid_metadata() {
     let env = Env::default();
     let admin = generate_address(&env);
     let long_name = String::from_str(&env, &"n".repeat(33));
     let long_symbol = String::from_str(&env, &"s".repeat(33));
     let ok: i32 = 0;
 
-    // Runs `register` and captures the panic (registration of an invalid
-    // constructor aborts the deploy), returning false when it panics.
+    // Runs `initialize` and captures the panic (initializing with invalid
+    // metadata aborts), returning false when it panics.
     let rejecting = |name: String, symbol: String, decimals: u32| -> bool {
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            env.register(
-                TokenContract,
-                TokenContractArgs::__constructor(
-                    &admin,
-                    &name,
-                    &symbol,
-                    &decimals,
-                    &10_000_000_000_000_000i128,
-                ),
+            let contract_id = env.register(TokenContract, ());
+            TokenContractClient::new(&env, &contract_id).initialize(
+                &admin,
+                &name,
+                &symbol,
+                &decimals,
+                &10_000_000_000_000_000i128,
             );
             ok
         }))
@@ -104,7 +98,7 @@ fn test_constructor_rejects_invalid_metadata() {
 }
 
 #[test]
-fn test_constructor_initializes_metadata() {
+fn test_initialize_stores_metadata() {
     let env = Env::default();
     let admin = generate_address(&env);
     let (_id, client) = deploy_token(&env, &admin);
@@ -714,13 +708,10 @@ fn test_upgrade_bumps_implementation_version() {
 }
 
 #[test]
-fn test_token_cannot_be_reinitialized_via_public_entry_point() {
-    // The constructor runs once at deploy time and `initialize` no longer
-    // exists, so a post-deploy "re-initialization" entry point is absent.
-    // Verify that:
-    // 1. metadata matches exactly what the constructor stored, and
-    // 2. invoking the old `initialize` function by raw symbol fails, proving
-    //    it cannot be used to overwrite admin/name/symbol after deployment.
+fn test_token_cannot_be_reinitialized() {
+    // `initialize` runs once, right after deployment. A second call fails
+    // with `AlreadyInitializedError`, so admin/name/symbol can never be
+    // overwritten after the fact.
     let env = Env::default();
     env.mock_all_auths();
     let admin = generate_address(&env);
@@ -733,22 +724,20 @@ fn test_token_cannot_be_reinitialized_via_public_entry_point() {
     assert_eq!(meta.decimals, 7);
     assert_eq!(meta.max_supply, 10_000_000_000_000_000i128);
 
-    let result: Result<
-        Result<Val, soroban_sdk::ConversionError>,
-        Result<soroban_sdk::Error, soroban_sdk::InvokeError>,
-    > = env.try_invoke_contract(
-        &id,
-        &Symbol::new(&env, "initialize"),
-        soroban_sdk::vec![
-            &env,
-            admin.clone().into_val(&env),
-            String::from_str(&env, "ForgeX").into_val(&env),
-            String::from_str(&env, "FX").into_val(&env),
-            6u32.into_val(&env),
-            1000i128.into_val(&env)
-        ],
+    let client = TokenContractClient::new(&env, &id);
+    let second = client.try_initialize(
+        &admin,
+        &String::from_str(&env, "ForgeX"),
+        &String::from_str(&env, "FX"),
+        &6u32,
+        &1000i128,
     );
-    assert!(result.is_err());
+    assert!(second.is_err());
+
+    // The failed re-initialization changed nothing.
+    let meta = client.metadata();
+    assert_eq!(meta.admin, admin);
+    assert_eq!(meta.name, String::from_str(&env, "Test Token"));
 }
 
 #[contract]
@@ -952,21 +941,19 @@ fn test_max_supply_split_across_accounts_is_still_enforced() {
 }
 
 #[test]
-fn test_constructor_rejects_negative_max_supply() {
+fn test_initialize_rejects_negative_max_supply() {
     let env = Env::default();
     let admin = generate_address(&env);
     let ok: i32 = 0;
     let rejecting = |max_supply: i128| -> bool {
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            env.register(
-                TokenContract,
-                TokenContractArgs::__constructor(
-                    &admin,
-                    &String::from_str(&env, "T"),
-                    &String::from_str(&env, "T"),
-                    &7u32,
-                    &max_supply,
-                ),
+            let contract_id = env.register(TokenContract, ());
+            TokenContractClient::new(&env, &contract_id).initialize(
+                &admin,
+                &String::from_str(&env, "T"),
+                &String::from_str(&env, "T"),
+                &7u32,
+                &max_supply,
             );
             ok
         }))

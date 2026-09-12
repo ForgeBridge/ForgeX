@@ -11,11 +11,18 @@ pub struct TokenContract;
 
 #[contractimpl]
 impl TokenContract {
-    /// Constructs the token at deployment time. Runs exactly once, when the
-    /// contract is deployed, which prevents re-initialization attacks: there
-    /// is no public post-deploy `initialize` entry point that an attacker
-    /// could use to steal admin or overwrite metadata.
-    pub fn __constructor(
+    /// Configures a freshly deployed token (admin, name, symbol, decimals,
+    /// max supply). Must be called once, right after deployment, before any
+    /// other use — the factory forges the token with `deploy_v2(wasm, ())`
+    /// and invokes this in the same transaction.
+    ///
+    /// Deployment and initialization are two explicit steps on purpose:
+    /// passing an address-bearing constructor through a cross-contract
+    /// `deploy_v2` is rejected by the network at execution time, while a
+    /// parameterless deploy followed by an `initialize` call succeeds.
+    /// A second call panics with `AlreadyInitializedError`, so the admin
+    /// and metadata can never be overwritten after the fact.
+    pub fn initialize(
         env: Env,
         admin: Address,
         name: String,
@@ -23,6 +30,9 @@ impl TokenContract {
         decimals: u32,
         max_supply: i128,
     ) {
+        if env.storage().instance().has(&"metadata") {
+            TokenError::AlreadyInitializedError.panic(&env);
+        }
         InterfaceVersion::initialize(&env);
         TokenMetadata::save(&env, admin, name, symbol, decimals, max_supply);
     }
