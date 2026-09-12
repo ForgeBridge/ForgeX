@@ -347,13 +347,20 @@ impl FactoryContract {
         nonce
     }
 
-    /// Derives a deterministic deployment salt from the nonce, the current
-    /// ledger sequence, and a per-contract tag (token vs. curve), so the two
-    /// contracts forged in one call land at distinct addresses.
+    /// Derives a deterministic deployment salt from the nonce and a
+    /// per-contract tag (token vs. curve), so the two contracts forged in
+    /// one call land at distinct addresses.
+    ///
+    /// The salt must NOT depend on mutable ledger state (sequence,
+    /// timestamp): the transaction's storage footprint is fixed at
+    /// simulation time from the simulated salt, so a salt that shifts
+    /// between simulation and application would write outside the declared
+    /// footprint and the transaction would fail on-chain. The nonce alone
+    /// guarantees uniqueness — it only moves forward and is never reused,
+    /// so every forged pair lands at fresh addresses.
     fn salt(env: &Env, nonce: u64, tag: u8) -> BytesN<32> {
         let mut bytes = [0u8; 32];
         bytes[0..8].copy_from_slice(&nonce.to_be_bytes());
-        bytes[8..12].copy_from_slice(&env.ledger().sequence().to_be_bytes());
         bytes[31] = tag;
         BytesN::from_array(env, &bytes)
     }
