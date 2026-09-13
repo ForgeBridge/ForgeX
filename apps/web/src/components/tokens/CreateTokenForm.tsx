@@ -19,7 +19,7 @@ const steps = [
 
 export function CreateTokenForm() {
   const router = useRouter()
-  const { isConnected, isConnecting, address, connect, network } = useWalletStore()
+  const { isConnected, isConnecting, address, connect, network, signTransaction } = useWalletStore()
   const { addToast, updateToast } = useToastStore()
   const soroban = useSoroban()
 
@@ -110,17 +110,12 @@ export function CreateTokenForm() {
         },
       }
 
-      const freighter = await import('@stellar/freighter-api')
       const result = await soroban
         .createToken(factoryId, address, params, {
           sourceAccount: address,
-          signers: [
-            async (xdr: string) => {
-              const signResult = await freighter.signTransaction(xdr)
-              if (signResult.error) throw new Error(signResult.error.message || 'Signing rejected')
-              return signResult.signedTxXdr
-            },
-          ],
+          signers: signTransaction
+            ? [signTransaction]
+            : [],
         })
         .catch((err) => {
           if (err.message?.includes('not yet wired') || !FACTORY_CONTRACT_ID) {

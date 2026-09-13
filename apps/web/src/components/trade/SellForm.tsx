@@ -35,7 +35,7 @@ export function SellForm({
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const { isConnected, address, connect, network } = useWalletStore()
+  const { isConnected, address, connect, network, signTransaction } = useWalletStore()
   const { addToast, updateToast } = useToastStore()
   const soroban = useSoroban()
   const slippage = useTradeStore((state) => state.slippage)
@@ -104,26 +104,14 @@ export function SellForm({
       const amountInBaseUnits = parseTokenAmount(trimmed, tokenDecimals).toString()
       const minPayoutWithSlippage = (minPayout * (1 - slippage / 100)).toFixed(0)
       const deadline = Math.floor(Date.now() / 1000) + 3600
-      const freighter = await import('@stellar/freighter-api')
 
       try {
         const curveClient = soroban.bondingCurve(curveContractId)
         await curveClient.sell(address, amountInBaseUnits, minPayoutWithSlippage, deadline, {
           sourceAccount: address,
-          signers: [
-            async (xdr: string) => {
-              const signResult = await freighter.signTransaction(xdr, {
-                networkPassphrase:
-                  network === 'mainnet'
-                    ? 'Public Global Stellar Network ; September 2015'
-                    : 'Test SDF Network ; September 2015',
-              })
-              if (signResult.error) {
-                throw new Error(signResult.error.message || 'Signing rejected')
-              }
-              return signResult.signedTxXdr
-            },
-          ],
+          signers: signTransaction
+            ? [signTransaction]
+            : [],
         })
       } catch (err: any) {
         if (
