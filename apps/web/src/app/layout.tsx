@@ -5,6 +5,7 @@ import { Outfit } from 'next/font/google'
 import { ThemeProvider } from '../components/providers/ThemeProvider'
 import { ReownProvider } from '../components/providers/ReownProvider'
 import { PrivyProvider } from '../components/providers/PrivyProvider'
+import { PrivyWalletBridge } from '../components/providers/PrivyWalletBridge'
 import { Header } from '../components/layout/Header'
 import { SiteFooter } from '../components/layout/SiteFooter'
 import { EnvValidationBanner } from '../components/common/EnvValidationBanner'
@@ -86,6 +87,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ReownProvider>
           <PrivyProvider>
+          <PrivyWalletBridge />
           <div className="flex flex-col min-h-screen">
             <Header />
             <EnvValidationBanner />
