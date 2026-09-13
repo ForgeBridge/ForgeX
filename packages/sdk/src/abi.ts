@@ -53,12 +53,15 @@ export function vec(values: xdr.ScVal[]): xdr.ScVal {
 
 /**
  * Encodes a Soroban `contracttype` struct as an ScMap with Symbol keys.
- * Structs decode from maps (not vecs) on-chain; key order is irrelevant.
+ * The host rejects unsorted maps, so entries are always sorted
+ * lexicographically by Symbol key — matching the Rust SDK macro output.
  */
 export function structVal(fields: Record<string, xdr.ScVal>): xdr.ScVal {
-  const entries = Object.entries(fields).map(
-    ([key, val]) => new xdr.ScMapEntry({ key: symbol(key), val }),
-  )
+  const entries = Object.entries(fields)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([key, val]) => new xdr.ScMapEntry({ key: symbol(key), val }),
+    )
   return xdr.ScVal.scvMap(entries)
 }
 
