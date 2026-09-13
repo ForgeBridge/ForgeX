@@ -1,18 +1,20 @@
 'use client'
 
 import { create } from 'zustand'
+import { usePrivy } from '@privy-io/react-auth'
+import {
+  useCreateWallet,
+  useSignRawHash,
+} from '@privy-io/react-auth/extended-chains'
+import {
+  xdr,
+  TransactionBuilder,
+  StrKey,
+} from '@stellar/stellar-sdk'
 import { NETWORKS, DEFAULT_NETWORK } from '../lib/constants'
+import { isPrivyConfigured } from '../components/providers/PrivyProvider'
 
 export type SupportedNetwork = 'testnet' | 'mainnet'
-
-const FREIGHTER_NOT_FOUND_MESSAGE =
-  'Freighter wallet not found. Install the extension or open ForgeX in the Freighter mobile app browser.'
-
-/** Freighter API error shape */
-interface FreighterApiError {
-  code: number
-  message: string
-}
 
 export interface WalletState {
   address: string | null
@@ -31,17 +33,10 @@ export interface WalletState {
   checkNetwork: () => Promise<void>
   fetchBalance: () => Promise<void>
   setBalance: (balance: string | null) => void
+  /** Pass as a SDK signer. Returns signed XDR. */
+  signTransaction: ((envelopeXdr: string) => Promise<string>) | null
 }
 
-/**
- * Wallet store using Zustand for Freighter wallet connection and network management.
- * 
- * Security considerations:
- * - No private keys are stored or accessed
- * - Only public address is held in state
- * - Network mismatch detection protects against signing transactions on the wrong network
- * - Connection errors are sanitized before display
- */
 export const useWalletStore = create<WalletState>((set, get) => ({
   address: null,
   balance: null,
@@ -52,28 +47,24 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   networkPassphrase: null,
   isNetworkMismatch: false,
   lastBalanceUpdate: null,
+  signTransaction: null,
 
   setBalance: (balance: string | null) => set({ balance, lastBalanceUpdate: Date.now() }),
 
   setNetwork: (network: SupportedNetwork) => {
     const { networkPassphrase, isConnected } = get()
     const expectedPassphrase = NETWORKS[network]?.networkPassphrase
-    const isMismatch = Boolean(isConnected && networkPassphrase && networkPassphrase !== expectedPassphrase)
+    const isMismatch = Boolean(
+      isConnected && networkPassphrase && networkPassphrase !== expectedPassphrase,
+    )
     set({ network, isNetworkMismatch: isMismatch })
   },
 
   checkNetwork: async () => {
-    try {
-      const freighter = await import('@stellar/freighter-api')
-      const networkResult = await freighter.getNetworkDetails()
-      const networkPassphrase = networkResult.networkPassphrase ?? null
-      const { network, isConnected } = get()
-      const expectedPassphrase = NETWORKS[network]?.networkPassphrase
-      const isMismatch = Boolean(isConnected && networkPassphrase && networkPassphrase !== expectedPassphrase)
-      set({ networkPassphrase, isNetworkMismatch: isMismatch })
-    } catch {
-      // Ignored if freighter unavailable
-    }
+    const { address, isConnected, network } = get()
+    if (!isConnected || !address) return
+    const expectedPassphrase = NETWORKS[network]?.networkPassphrase
+    set({ networkPassphrase: expectedPassphrase, isNetworkMismatch: false })
   },
 
   fetchBalance: async () => {
@@ -82,12 +73,9 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       set({ balance: null })
       return
     }
-
     try {
       const rpcUrl = NETWORKS[network]?.rpcUrl
-      // Safe fallback balance check or Horizon/Soroban account balance lookup
       if (rpcUrl) {
-        // Query account balance
         const response = await fetch(`${rpcUrl.replace(/\/$/, '')}/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -98,7 +86,6 @@ export const useWalletStore = create<WalletState>((set, get) => ({
             params: { address },
           }),
         }).catch(() => null)
-
         if (response && response.ok) {
           const data = await response.json()
           if (data.result?.sequence) {
@@ -106,86 +93,17 @@ export const useWalletStore = create<WalletState>((set, get) => ({
           }
         }
       }
-      // If mock/testnet without account initialized yet
       if (!get().balance) {
         set({ balance: '100.00', lastBalanceUpdate: Date.now() })
       }
     } catch {
-      // Keep existing balance on network glitch
+      // Keep existing balance
     }
   },
 
   connect: async () => {
-    if (get().isConnecting) return
-
+    if (!isPrivyConfigured()) return
     set({ isConnecting: true, error: null })
-
-    try {
-      const freighter = await import('@stellar/freighter-api')
-      const win = getWalletWindow()
-
-      // `isConnected()` only reports the desktop extension. Freighter Mobile's
-      // in-app browser injects `window.freighterApi` (and `window.stellar`),
-      // so those must be treated as "wallet present" too. Otherwise the
-      // connect flow wrongly asks mobile users to install the extension.
-      const connectionResult = await freighter.isConnected().catch(() => null)
-      const walletPresent = Boolean(
-        connectionResult?.isConnected ||
-          win.freighter !== undefined ||
-          win.freighterApi ||
-          win.stellar?.platform,
-      )
-
-      if (!walletPresent) {
-        set({
-          isConnecting: false,
-          error: FREIGHTER_NOT_FOUND_MESSAGE,
-        })
-        return
-      }
-
-      const allowedResult = await freighter.isAllowed()
-      if (!allowedResult.isAllowed) {
-        await freighter.requestAccess()
-      }
-
-      const result = await freighter.getAddress()
-      if (result.error) {
-        const err = result.error as FreighterApiError
-        set({
-          isConnecting: false,
-          error: sanitizeWalletError(err.message ?? 'Failed to get wallet address'),
-        })
-        return
-      }
-
-      const networkResult = await freighter.getNetworkDetails()
-      const networkPassphrase = networkResult.networkPassphrase ?? null
-      const currentNetwork = get().network
-      const expectedPassphrase = NETWORKS[currentNetwork]?.networkPassphrase
-      const isNetworkMismatch = Boolean(networkPassphrase && networkPassphrase !== expectedPassphrase)
-
-      set({
-        address: result.address,
-        isConnected: true,
-        isConnecting: false,
-        error: null,
-        networkPassphrase,
-        isNetworkMismatch,
-      })
-
-      // Fetch initial balance
-      await get().fetchBalance()
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? sanitizeWalletError(err.message)
-          : 'An unexpected error occurred while connecting wallet'
-      set({
-        isConnecting: false,
-        error: message,
-      })
-    }
   },
 
   disconnect: () => {
@@ -198,6 +116,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       networkPassphrase: null,
       isNetworkMismatch: false,
       lastBalanceUpdate: null,
+      signTransaction: null,
     })
   },
 
@@ -206,32 +125,169 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 }))
 
-function sanitizeWalletError(message: string): string {
-  const lower = message.toLowerCase()
+/**
+ * Bridge hook: syncs Privy authentication state into the Zustand wallet
+ * store and wires connect / disconnect / sign to Privy.
+ *
+ * Must be rendered inside a PrivyProvider. No-ops when Privy is not configured.
+ */
+export function usePrivyBridge() {
+  if (!isPrivyConfigured()) return
 
-  if (lower.includes('user rejected') || lower.includes('user denied') || lower.includes('cancelled')) {
-    return 'Connection request was rejected by user'
-  }
-  if (lower.includes('not found') || lower.includes('not installed')) {
-    return FREIGHTER_NOT_FOUND_MESSAGE
-  }
-  if (lower.includes('network')) {
-    return 'Network error while connecting to wallet. Please try again.'
-  }
-  if (lower.includes('timeout')) {
-    return 'Connection timed out. Please try again.'
+  // Always call hooks — React forbids conditional hooks.
+  const { ready, authenticated, login, logout, user } = usePrivy()
+  const { createWallet } = useCreateWallet()
+  const { signRawHash } = useSignRawHash()
+
+  // Find or create the Stellar wallet
+  const stellarAddress = findStellarAddress(user)
+
+  // Sync Privy → Zustand
+  const current = useWalletStore.getState()
+  if (ready && authenticated && stellarAddress && current.address !== stellarAddress) {
+    const passphrase = NETWORKS[current.network]?.networkPassphrase ?? null
+    useWalletStore.setState({
+      address: stellarAddress,
+      isConnected: true,
+      isConnecting: false,
+      error: null,
+      networkPassphrase: passphrase,
+      isNetworkMismatch: false,
+      signTransaction: makeSigner(signRawHash as any, stellarAddress, useWalletStore),
+    })
+    current.fetchBalance()
   }
 
-  return 'Failed to connect wallet. Please try again.'
+  if (ready && !authenticated && current.address) {
+    useWalletStore.setState({
+      address: null,
+      balance: null,
+      isConnected: false,
+      isConnecting: false,
+      error: null,
+      networkPassphrase: null,
+      isNetworkMismatch: false,
+      lastBalanceUpdate: null,
+      signTransaction: null,
+    })
+  }
+
+  // Wire connect → Privy login + optional Stellar wallet creation
+  useWalletStore.setState({
+    connect: async () => {
+      if (!ready) return
+      useWalletStore.setState({ isConnecting: true, error: null })
+      try {
+        if (authenticated && stellarAddress) {
+          const network = useWalletStore.getState().network
+          const passphrase = NETWORKS[network]?.networkPassphrase ?? null
+          useWalletStore.setState({
+            address: stellarAddress,
+            isConnected: true,
+            isConnecting: false,
+            networkPassphrase: passphrase,
+            signTransaction: makeSigner(signRawHash as any, stellarAddress, useWalletStore),
+          })
+          return
+        }
+        await login()
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to connect'
+        useWalletStore.setState({ isConnecting: false, error: msg })
+      }
+    },
+    disconnect: async () => {
+      try {
+        await logout()
+      } catch {
+        /* ignore */
+      }
+      useWalletStore.setState({
+        address: null,
+        balance: null,
+        isConnected: false,
+        isConnecting: false,
+        error: null,
+        networkPassphrase: null,
+        isNetworkMismatch: false,
+        lastBalanceUpdate: null,
+        signTransaction: null,
+      })
+    },
+  })
 }
 
-interface FreighterInjection {
-  freighter?: unknown
-  freighterApi?: unknown
-  stellar?: { platform?: string }
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Extract the Stellar address from a Privy user's linked wallets. */
+function findStellarAddress(user: ReturnType<typeof usePrivy>['user']): string | null {
+  if (!user?.wallet) return null
+  // Privy stores extended-chain wallets in user.wallet with a stellar address
+  const w = user.wallet
+  // The wallet may be typed as ethereum/solana but the address can be a Stellar G...
+  if (typeof w?.address === 'string' && w.address.startsWith('G')) return w.address
+  return null
 }
 
-function getWalletWindow(): FreighterInjection {
-  if (typeof window === 'undefined') return {}
-  return window as unknown as FreighterInjection
+/**
+ * Build an XDR signing callback that:
+ * 1. Hashes the transaction envelope (SHA-256 per Stellar network convention)
+ * 2. Signs the hash via Privy's raw sign endpoint
+ * 3. Wraps the Ed25519 signature into a Stellar DecoratedSignature
+ * 4. Returns the re-serialized signed XDR
+ */
+function makeSigner(
+  signRawHash: (input: {
+    address: string
+    chainType: string
+    hash: `0x${string}`
+  }) => Promise<{ signature: string }>,
+  address: string,
+  store: typeof useWalletStore,
+) {
+  return async (envelopeXdr: string): Promise<string> => {
+    const state = store.getState()
+    const passphrase =
+      state.networkPassphrase ?? NETWORKS[state.network]?.networkPassphrase ?? ''
+
+    // Parse and hash the envelope (Stellar uses SHA-256 of the raw XDR bytes)
+    const tx = TransactionBuilder.fromXDR(envelopeXdr, passphrase)
+    const txHash = tx.hash()
+    const hashHex = `0x${Buffer.from(txHash).toString('hex')}`
+
+    // Sign via Privy
+    const { signature: sigHex } = await signRawHash({
+      address,
+      chainType: 'stellar',
+      hash: hashHex as `0x${string}`,
+    })
+
+    // Decode the Ed25519 signature (64 bytes)
+    const sigBytes = Buffer.from(sigHex.replace(/^0x/, ''), 'hex')
+
+    // Derive the 4-byte hint from the last 4 bytes of the public key
+    const pubKeyBytes = StrKey.decodeEd25519PublicKey(address)
+    const hintBytes = pubKeyBytes.slice(-4)
+    const hintBuffer = Buffer.alloc(4)
+    hintBuffer.set(hintBytes)
+
+    // Build DecoratedSignature
+    const decoratedSig = new xdr.DecoratedSignature({
+      hint: hintBuffer,
+      signature: sigBytes,
+    })
+
+    // Attach to envelope — access the v1 payload, push signature, re-wrap
+    const envelope = tx.toEnvelope()
+    const v1Env = envelope.v1()
+    const sigs = v1Env.signatures()
+    sigs.push(decoratedSig)
+    v1Env.signatures(sigs)
+    const signedEnvelope = new (xdr.TransactionEnvelope as any).envelopeTypeTx(v1Env)
+
+    // Return re-serialized signed XDR
+    return signedEnvelope.toXDR('base64')
+  }
 }
