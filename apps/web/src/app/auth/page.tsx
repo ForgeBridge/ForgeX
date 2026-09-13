@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useWalletStore } from '../../hooks/useWallet'
 import { isReownConfigured } from '../../lib/reown'
+import { isPrivyConfigured } from '../../components/providers/PrivyProvider'
 import { Button } from '../../components/ui/Button'
 import { EvmWalletSection } from '../../components/wallet/EvmWalletSection'
 
@@ -36,6 +37,8 @@ export default function AuthPage() {
       router.push('/dashboard')
     }
   }, [isConnected, router])
+
+  const privyEnabled = isPrivyConfigured()
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center px-4 py-10">
@@ -69,18 +72,22 @@ export default function AuthPage() {
           {/* Heading */}
           <div className="text-center mb-8">
             <h1 className="font-display text-lg font-bold text-foreground">
-              Connect Wallet
+              {privyEnabled ? 'Sign In' : 'Connect Wallet'}
             </h1>
             <p className="text-sm text-muted-foreground mt-1.5">
-              Choose your ecosystem to access ForgeX
+              {privyEnabled
+                ? 'Use email, social login, or a wallet to access ForgeX'
+                : 'Choose your ecosystem to access ForgeX'}
             </p>
           </div>
 
           {/* Stellar option */}
           <section aria-label="Stellar wallets">
-            <p className="text-xs font-semibold tracking-[0.15em] text-muted-foreground mb-3">
-              STELLAR
-            </p>
+            {!privyEnabled && (
+              <p className="text-xs font-semibold tracking-[0.15em] text-muted-foreground mb-3">
+                STELLAR
+              </p>
+            )}
 
             {error && (
               <div className="mb-4 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs">
@@ -141,21 +148,25 @@ export default function AuthPage() {
                   </svg>
                   Connecting...
                 </span>
+              ) : privyEnabled ? (
+                'Sign In with Privy'
               ) : (
                 'Connect with Freighter'
               )}
             </Button>
 
-            <div className="mt-4 text-center">
-              <a
-                href="https://freighter.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline"
-              >
-                Don&apos;t have Freighter? Get it here
-              </a>
-            </div>
+            {!privyEnabled && (
+              <div className="mt-4 text-center">
+                <a
+                  href="https://freighter.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Don&apos;t have Freighter? Get it here
+                </a>
+              </div>
+            )}
           </section>
 
           {/* Divider */}
@@ -181,20 +192,18 @@ export default function AuthPage() {
               How it works
             </p>
             <div className="space-y-3">
-              {[
-                {
-                  step: '1',
-                  text: 'Pick Stellar (Freighter) or an EVM wallet',
-                },
-                {
-                  step: '2',
-                  text: 'Approve the connection in your wallet',
-                },
-                {
-                  step: '3',
-                  text: 'Forge, trade, and explore from your dashboard',
-                },
-              ].map((item) => (
+              {(privyEnabled
+                ? [
+                    { step: '1', text: 'Sign in with email, Google, or a wallet' },
+                    { step: '2', text: 'A Stellar wallet is created automatically' },
+                    { step: '3', text: 'Forge, trade, and explore from your dashboard' },
+                  ]
+                : [
+                    { step: '1', text: 'Pick Stellar (Freighter) or an EVM wallet' },
+                    { step: '2', text: 'Approve the connection in your wallet' },
+                    { step: '3', text: 'Forge, trade, and explore from your dashboard' },
+                  ]
+              ).map((item) => (
                 <div key={item.step} className="flex items-center gap-3">
                   <div
                     aria-hidden="true"
