@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ForgeCanvas } from '../hero/ForgeCanvas'
 import { TickerBar } from '../tokens/TickerBar'
+import { SoundControl } from '../ui/SoundControl'
 import { CHAPTERS, BOARD_INDEX, useJourneyStore } from './useJourney'
 import { CHAPTER_COMPONENTS } from './chapters'
 
@@ -101,6 +102,8 @@ export function Journey() {
               <path d="M6 18L18 6M6 6h12v12" />
             </svg>
           </a>
+
+          <SoundControl />
         </div>
       </header>
 
