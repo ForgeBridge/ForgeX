@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ForgeCanvas } from '../hero/ForgeCanvas'
+import { TickerBar } from '../tokens/TickerBar'
 import { CHAPTERS, BOARD_INDEX, useJourneyStore } from './useJourney'
 import { CHAPTER_COMPONENTS } from './chapters'
 
@@ -50,6 +51,8 @@ export function Journey() {
         aria-hidden="true"
         className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/20 to-background"
       />
+
+      <TickerBar />
 
       <header className="relative border-b border-border/60 bg-background/60 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">

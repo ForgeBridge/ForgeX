@@ -8,6 +8,7 @@ import { PrivyProvider } from '../components/providers/PrivyProvider'
 import { PrivyWalletBridge } from '../components/providers/PrivyWalletBridge'
 import { Header } from '../components/layout/Header'
 import { SiteFooter } from '../components/layout/SiteFooter'
+import { TickerBar } from '../components/tokens/TickerBar'
 import { EnvValidationBanner } from '../components/common/EnvValidationBanner'
 import { WalletErrorBanner } from '../components/wallet/WalletErrorBanner'
 import { NetworkMismatchBanner } from '../components/wallet/NetworkMismatchBanner'
@@ -88,6 +89,7 @@ export default function RootLayout({
           <PrivyProvider>
           <PrivyWalletBridge />
           <div className="flex flex-col min-h-screen">
+            <TickerBar />
             <Header />
             <EnvValidationBanner />
             <NetworkMismatchBanner />
