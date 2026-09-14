@@ -1,9 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['geist'],
-  // Required by Reown AppKit + wagmi (pino / lokijs / encoding are Node-only).
   webpack: (config) => {
-    config.externals.push('pino-pretty', 'lokijs', 'encoding')
+    config.externals.push('pino-pretty', 'lokijs', 'encoding', '@farcaster/mini-app-solana')
     return config
   },
 }
