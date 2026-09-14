@@ -17,7 +17,7 @@ export function ForgeChapter() {
         tabIndex={-1}
         className="font-display mt-4 text-4xl font-extrabold tracking-tight text-foreground sm:text-6xl focus:outline-none"
       >
-        Forge your token.
+        Forge your token<span aria-hidden="true" className="text-forge">.</span>
       </h2>
 
       <p className="mx-auto mt-4 max-w-md leading-relaxed text-muted-foreground">
