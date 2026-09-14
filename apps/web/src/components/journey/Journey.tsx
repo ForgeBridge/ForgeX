@@ -11,7 +11,7 @@ import { CHAPTER_COMPONENTS } from './chapters'
  * full-viewport canvas, minimal chrome, one chapter at a time.
  */
 export function Journey() {
-  const { index, next, back, goTo, reset } = useJourneyStore()
+  const { index, next, back, goTo, reset, pulse } = useJourneyStore()
   const current = CHAPTERS[index] ?? CHAPTERS[0]
   const Chapter = CHAPTER_COMPONENTS[current.id]
   const mainRef = useRef<HTMLElement>(null)
@@ -45,7 +45,7 @@ export function Journey() {
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col overflow-hidden">
-      <ForgeCanvas className="absolute inset-0 h-full w-full" />
+      <ForgeCanvas className="absolute inset-0 h-full w-full" pulseTrigger={pulse} />
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/20 to-background"
