@@ -3,7 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Outfit } from 'next/font/google'
 import { ThemeProvider } from '../components/providers/ThemeProvider'
-import { ReownProvider } from '../components/providers/ReownProvider'
+
 import { PrivyProvider } from '../components/providers/PrivyProvider'
 import { PrivyWalletBridge } from '../components/providers/PrivyWalletBridge'
 import { Header } from '../components/layout/Header'
@@ -85,7 +85,6 @@ export default function RootLayout({
           Skip to content
         </a>
         <ThemeProvider>
-          <ReownProvider>
           <PrivyProvider>
           <PrivyWalletBridge />
           <div className="flex flex-col min-h-screen">
@@ -98,7 +97,6 @@ export default function RootLayout({
             <SiteFooter />
           </div>
           </PrivyProvider>
-          </ReownProvider>
         </ThemeProvider>
       </body>
     </html>
