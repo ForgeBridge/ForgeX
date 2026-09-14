@@ -1,6 +1,7 @@
 'use client'
 
 import { PrivyProvider as Privy } from '@privy-io/react-auth'
+import { mainnet, arbitrum, base, sepolia } from '@privy-io/chains'
 
 const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID
 
@@ -20,6 +21,7 @@ export function PrivyProvider({ children }: { children: React.ReactNode }) {
           accentColor: '#2563eb',
         },
         loginMethods: ['email', 'google', 'github', 'wallet'],
+        supportedChains: [mainnet, arbitrum, base, sepolia],
       }}
     >
       {children}
