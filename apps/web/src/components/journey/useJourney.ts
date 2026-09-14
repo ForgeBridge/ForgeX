@@ -20,14 +20,17 @@ export const BOARD_INDEX = CHAPTERS.findIndex((c) => c.id === 'board')
 
 interface JourneyState {
   index: number
+  pulse: number
   next: () => void
   back: () => void
   goTo: (index: number) => void
   reset: () => void
+  firePulse: () => void
 }
 
-export const useJourneyStore = create<JourneyState>((set) => ({
+export const useJourneyStore = create<JourneyState>((set, get) => ({
   index: 0,
+  pulse: 0,
 
   next: () =>
     set((state) => ({
@@ -45,4 +48,6 @@ export const useJourneyStore = create<JourneyState>((set) => ({
     })),
 
   reset: () => set(() => ({ index: 0 })),
+
+  firePulse: () => set((state) => ({ pulse: state.pulse + 1 })),
 }))
