@@ -6,11 +6,6 @@ import {
   useCreateWallet,
   useSignRawHash,
 } from '@privy-io/react-auth/extended-chains'
-import {
-  xdr,
-  TransactionBuilder,
-  StrKey,
-} from '@stellar/stellar-sdk'
 import { NETWORKS, DEFAULT_NETWORK } from '../lib/constants'
 import { isPrivyConfigured } from '../components/providers/PrivyProvider'
 
@@ -132,12 +127,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
  * Must be rendered inside a PrivyProvider. No-ops when Privy is not configured.
  */
 export function usePrivyBridge() {
-  if (!isPrivyConfigured()) return
-
-  // Always call hooks — React forbids conditional hooks.
+  const privyConfigured = isPrivyConfigured()
   const { ready, authenticated, login, logout, user } = usePrivy()
   const { createWallet } = useCreateWallet()
   const { signRawHash } = useSignRawHash()
+
+  if (!privyConfigured) return
 
   // Find or create the Stellar wallet
   const stellarAddress = findStellarAddress(user)
@@ -248,6 +243,7 @@ function makeSigner(
   store: typeof useWalletStore,
 ) {
   return async (envelopeXdr: string): Promise<string> => {
+    const { xdr, TransactionBuilder, StrKey } = await import('@stellar/stellar-sdk')
     const state = store.getState()
     const passphrase =
       state.networkPassphrase ?? NETWORKS[state.network]?.networkPassphrase ?? ''
