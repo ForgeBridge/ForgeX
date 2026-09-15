@@ -254,6 +254,7 @@ export function TokenFeed({
               <input
                 type="text"
                 placeholder="Search symbol or name..."
+                aria-label="Search tokens"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-background border border-border rounded-md pl-8 pr-7 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-mono transition-colors"
