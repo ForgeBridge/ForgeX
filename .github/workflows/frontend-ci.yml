@@ -29,6 +29,8 @@ jobs:
         run: npm run typecheck -w packages/sdk
       - name: Lint
         run: npm run lint
+      - name: Build SDK
+        run: npm run build -w packages/sdk
       - name: Test
         run: npm run test -w apps/web
       - name: Build
