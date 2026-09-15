@@ -3,19 +3,18 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Outfit } from 'next/font/google'
 import dynamic from 'next/dynamic'
-import { PrivyProvider } from '../components/providers/PrivyProvider'
-import { PrivyWalletBridge } from '../components/providers/PrivyWalletBridge'
-import { SiteFooter } from '../components/layout/SiteFooter'
-import { ToastContainer } from '../components/ui/Toast'
 import '../styles/globals.css'
 
 const ThemeProvider = dynamic(() => import('../components/providers/ThemeProvider').then(m => m.ThemeProvider), { ssr: false })
-
+const PrivyProvider = dynamic(() => import('../components/providers/PrivyProvider').then(m => m.PrivyProvider), { ssr: false })
+const PrivyWalletBridge = dynamic(() => import('../components/providers/PrivyWalletBridge').then(m => m.PrivyWalletBridge), { ssr: false })
 const Header = dynamic(() => import('../components/layout/Header').then(m => m.Header), { ssr: false })
+const SiteFooter = dynamic(() => import('../components/layout/SiteFooter').then(m => m.SiteFooter), { ssr: false })
 const WalletErrorBanner = dynamic(() => import('../components/wallet/WalletErrorBanner').then(m => m.WalletErrorBanner), { ssr: false })
 const NetworkMismatchBanner = dynamic(() => import('../components/wallet/NetworkMismatchBanner').then(m => m.NetworkMismatchBanner), { ssr: false })
 const TickerBar = dynamic(() => import('../components/tokens/TickerBar').then(m => m.TickerBar), { ssr: false })
 const EnvValidationBanner = dynamic(() => import('../components/common/EnvValidationBanner').then(m => m.EnvValidationBanner), { ssr: false })
+const ToastContainer = dynamic(() => import('../components/ui/Toast').then(m => m.ToastContainer), { ssr: false })
 
 const displayFont = Outfit({
   subsets: ['latin'],
