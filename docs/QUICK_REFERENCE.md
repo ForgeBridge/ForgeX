@@ -11,7 +11,8 @@
 | **Install all deps** | `npm ci` |
 | **Build contracts** | `./scripts/build-contracts.sh` |
 | **Run contract tests** | `cargo test --workspace --lib` |
-| **Build SDK** | `npm run build -w packages/sdk` |
+| **Build SDK (Stellar)** | `npm run build -w packages/sdk` |
+| **Build SDK-EVM (Arc)** | `npm run build -w packages/sdk-evm` |
 | **Typecheck SDK** | `npm run typecheck -w packages/sdk` |
 | **Build web** | `npm run build -w apps/web` |
 | **Typecheck web** | `npm run typecheck -w apps/web` |
@@ -174,9 +175,11 @@ Testnet USDC for gas: `https://faucet.circle.com`
 | Factory only | `cd contracts/stellar/factory && cargo test --lib` |
 | Curve only | `cd contracts/stellar/bonding-curve && cargo test --lib` |
 | EVM (Arc) | `cd contracts/evm && forge test` |
-| SDK typecheck | `npm run typecheck -w packages/sdk` |
+| SDK typecheck (Stellar) | `npm run typecheck -w packages/sdk` |
+| SDK typecheck (Arc) | `npm run typecheck -w packages/sdk-evm` |
 | Web typecheck | `npm run typecheck -w apps/web` |
-| SDK lint | `npm run lint -w packages/sdk` |
+| SDK lint (Stellar) | `npm run lint -w packages/sdk` |
+| SDK tests (Arc) | `npm test -w packages/sdk-evm` |
 | Web lint | `npm run lint -w apps/web` |
 
 ---

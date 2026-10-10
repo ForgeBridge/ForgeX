@@ -195,7 +195,8 @@ forgex/
 │       └── script/             #   Deploy.s.sol
 │
 ├── packages/
-│   └── sdk/                    # @forgex/sdk — TypeScript client library
+│   ├── sdk/                    # @forgex/sdk — Stellar/Soroban client library
+│   └── sdk-evm/                # @forgex/sdk-evm — Arc/EVM client library (viem)
 │       └── src/
 │           ├── ForgeXClient.ts # Top-level convenience client
 │           ├── client.ts       # SorobanClient (RPC, simulate/invoke/sign)
@@ -408,6 +409,7 @@ npm run dev:web                       # http://localhost:3000
 ```bash
 npx nx run ...            # not used — plain npm workspaces instead
 npm run build:sdk         # build @forgex/sdk (tsc)
+npm run build -w @forgex/sdk-evm   # build @forgex/sdk-evm (tsc)
 npm run build:web         # build web (auto-builds sdk first via prebuild)
 npm run build             # both
 npm run dev:web           # Next.js dev server
@@ -476,6 +478,7 @@ See `docs/` for deep dives (all current, expanded beyond this README):
 | `SMART_CONTRACTS.md` | Contract-by-contract behavior |
 | `DEPLOYMENT.md` / `DEPLOYMENT_RUNBOOK.md` | Stellar testnet/mainnet procedures, verification & rollback |
 | `DEPLOYMENT_ARC.md` | Arc deployment: chain ids, USDC gas, forging/trading, frontend env |
+| `contracts/evm/README.md` | EVM suite layout, parity rules, upgrade/storage cautions |
 | `ENVIRONMENT_SETUP.md` | Contributor onboarding, config, troubleshooting |
 | `MONITORING_ALERTING.md` | Metrics, alerts, dashboards |
 | `THEMING_DESIGN_TOKENS.md` | CSS variables, Tailwind config, dark mode |

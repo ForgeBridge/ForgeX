@@ -114,8 +114,29 @@ NEXT_PUBLIC_ARC_FACTORY_ADDRESS=<factory>
 NEXT_PUBLIC_ARC_QUOTE_TOKEN_ADDRESS=0x0000000000000000000000000000000000000000
 ```
 
-The frontend keeps running on Stellar when these are unset; setting them adds
-Arc as a second network.
+`NEXT_PUBLIC_ARC_FACTORY_ADDRESS` is the switch: without it the app stays a
+Stellar-only app, and with it a `Stellar | Arc` switcher appears in the header.
+Everything else is optional and falls back to the testnet defaults.
+
+Rebuild the frontend afterwards — these values are inlined at build time:
+
+```bash
+npm run build
+```
+
+### What the frontend does with them
+
+| Piece | Role |
+|---|---|
+| `packages/sdk-evm` | typed factory/curve/token clients over the ABIs in `contracts/evm/abi` |
+| `src/lib/arc.ts` | reads and validates the variables above; `getArcConfig().enabled` gates every Arc affordance |
+| `useEvmWalletStore` | 0x account, chain id, wrong-network flag — kept apart from the Stellar store |
+| `useEvmWallet` | resolves the wallet's EIP-1193 provider and switches/adds the Arc chain |
+| `useEvmTrade` | quotes first, then approves if the curve settles in an ERC20, then buys/sells |
+| `ArcTradeForm` | the Arc trade panel, loaded with `next/dynamic` so viem stays out of the initial bundle |
+
+Quoting, slippage maths and revert message mapping all come from
+`@forgex/sdk-evm`, and its tests assert the argument order the contracts expect.
 
 ## Network differences worth knowing
 
