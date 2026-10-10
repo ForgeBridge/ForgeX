@@ -184,10 +184,15 @@ forgex/
 │       │   └── test/           # test setup
 │       ├── tailwind.config.ts  · next.config.js · vitest.config.ts · tsconfig.json
 │
-├── contracts/                  # Rust / Soroban smart contracts (no_std, WASM)
-│   ├── token/                  #   SEP-41 token contract
-│   ├── factory/                #   Token registry / factory singleton
-│   └── bonding-curve/          #   Exponential AMM (bonding curve)
+├── contracts/                  # Smart contracts, one suite per chain
+│   ├── stellar/                # Rust / Soroban (no_std, WASM)
+│   │   ├── token/              #   SEP-41 token contract
+│   │   ├── factory/            #   Token registry / factory singleton
+│   │   └── bonding-curve/      #   Exponential AMM (bonding curve)
+│   └── evm/                    # Solidity / Foundry — Circle's Arc (EVM, USDC gas)
+│       ├── src/                #   ForgeXToken · ForgeXCurve · ForgeXFactory · proxy
+│       ├── test/               #   Foundry suite, incl. curve-math parity vectors
+│       └── script/             #   Deploy.s.sol
 │
 ├── packages/
 │   └── sdk/                    # @forgex/sdk — TypeScript client library
@@ -201,10 +206,11 @@ forgex/
 │
 ├── scripts/                    # Shell orchestration
 │   ├── initialize.sh           # First-time setup (deps, soroban CLI, .env)
-│   ├── build-contracts.sh      # cargo build → wasm32v1-none WASM
-│   ├── deploy-testnet.sh       # Deploy + initialize factory + curve, write .env.testnet
-│   ├── deploy-mainnet.sh       # Future mainnet deployment
-│   └── fund-testnet.sh         # Fund deployer account
+│   ├── build-contracts.sh      # cargo build → wasm32v1-none WASM (stellar)
+│   ├── deploy-testnet.sh       # Soroban: deploy + initialize, write .env.testnet
+│   ├── deploy-mainnet.sh       # Future Soroban mainnet deployment
+│   ├── fund-testnet.sh         # Fund Soroban deployer account
+│   └── deploy-arc.sh           # Arc: forge build → test → broadcast + verify
 │
 ├── docs/                       # 15 detailed docs (SDK API, deployment runbook, ADRs, ...)
 ├── .github/workflows/          # contracts-ci · frontend-ci · deploy-testnet
@@ -451,7 +457,8 @@ GitHub Actions workflows in `.github/workflows/`:
 
 | Workflow | Triggers | Checks |
 |---|---|---|
-| `contracts-ci.yml` | push/PR touching `contracts/**` | `cargo build` · `cargo test` · `clippy -D warnings` · `cargo fmt --check` |
+| `contracts-ci.yml` | push/PR touching `contracts/stellar/**` | `cargo build` · `cargo test` · `clippy -D warnings` · `cargo fmt --check` |
+| `contracts-evm-ci.yml` | push/PR touching `contracts/evm/**` | `forge build --sizes` · `forge test` · EIP-170 size guard |
 | `frontend-ci.yml` | push/PR touching `apps/web/**` or `packages/sdk/**` | `npm ci` · SDK typecheck · `npm run lint` · `npm run build` (SDK built first) |
 | `deploy-testnet.yml` | manual `workflow_dispatch` on `main` | Build WASM → `./scripts/deploy-testnet.sh` with `SOROBAN_ACCOUNT` etc. from secrets |
 
@@ -467,7 +474,8 @@ See `docs/` for deep dives (all current, expanded beyond this README):
 | `SDK_API_REFERENCE.md` | Full SDK classes, methods, and usage examples |
 | `BONDING_CURVE.md` | Curve math, fixed-point, Taylor approximation |
 | `SMART_CONTRACTS.md` | Contract-by-contract behavior |
-| `DEPLOYMENT.md` / `DEPLOYMENT_RUNBOOK.md` | Testnet/mainnet procedures, verification & rollback |
+| `DEPLOYMENT.md` / `DEPLOYMENT_RUNBOOK.md` | Stellar testnet/mainnet procedures, verification & rollback |
+| `DEPLOYMENT_ARC.md` | Arc deployment: chain ids, USDC gas, forging/trading, frontend env |
 | `ENVIRONMENT_SETUP.md` | Contributor onboarding, config, troubleshooting |
 | `MONITORING_ALERTING.md` | Metrics, alerts, dashboards |
 | `THEMING_DESIGN_TOKENS.md` | CSS variables, Tailwind config, dark mode |

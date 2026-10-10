@@ -42,13 +42,21 @@ MIT OR Apache-2.0
 | `typescript` | ^5.4.0 | Apache-2.0 | ✅ Dev only |
 | `vitest` | ^1.6.0 | MIT | ✅ Dev only |
 
-### Contracts (`contracts/*/*/Cargo.toml`, `contracts/evm/src/**`)
+### Contracts (`contracts/stellar/*/Cargo.toml`)
 
 | Crate | Version | License | Status |
 |-------|---------|---------|--------|
 | `soroban-sdk` | 27.0.3 | Apache-2.0 | ✅ Compatible |
 | `soroban-auth` | 27.0.3 | Apache-2.0 | ✅ Compatible |
 | `soroban-token` | 27.0.3 | Apache-2.0 | ✅ Compatible |
+
+### EVM Contracts (`contracts/evm`)
+
+All sources are first-party under the project's dual license.
+
+| Package | Version | License | Status |
+|---------|---------|---------|--------|
+| `forge-std` (vendored in `contracts/evm/lib/`) | vendored | MIT OR Apache-2.0 | ✅ Compatible, dev only |
 
 ---
 

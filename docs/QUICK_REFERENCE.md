@@ -152,6 +152,19 @@ SOROBAN_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
 
 ---
 
+### ⛓ Chain Lifecycle
+
+| Task | Stellar / Soroban | Arc (EVM) |
+|------|-------------------|-----------|
+| Test | `cargo test --workspace --lib` (from repo root) | `cd contracts/evm && forge test` |
+| Build | `./scripts/build-contracts.sh` | `cd contracts/evm && forge build` |
+| Deploy | `./scripts/deploy-testnet.sh` | `./scripts/deploy-arc.sh` |
+| Configure | `.env.local` (`NEXT_PUBLIC_*`) | `.env.local` (`NEXT_PUBLIC_ARC_*`) |
+| Docs | `docs/DEPLOYMENT.md` | `docs/DEPLOYMENT_ARC.md` |
+| Guide | `docs/QUICK_REFERENCE.md` | `contracts/evm/README.md` |
+
+Testnet USDC for gas: `https://faucet.circle.com`
+
 ### 🧪 Test Commands
 
 | Scope | Command |
