@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { WalletConnect } from '../wallet/WalletConnect'
 import { NetworkBadge } from '../wallet/NetworkBadge'
+import { ChainSwitcher } from '../wallet/ChainSwitcher'
 import { ThemeToggle } from '../ui/ThemeToggle'
 
 const navLinks = [
@@ -91,6 +92,7 @@ export function Header() {
         </div>
 
         <div className="hidden md:flex items-center gap-2">
+          <ChainSwitcher />
           <NetworkBadge />
           <ThemeToggle />
           <div className="w-px h-5 bg-border mx-1" />
@@ -98,6 +100,7 @@ export function Header() {
         </div>
 
         <div className="flex md:hidden items-center gap-2">
+          <ChainSwitcher />
           <NetworkBadge />
           <ThemeToggle />
           <button

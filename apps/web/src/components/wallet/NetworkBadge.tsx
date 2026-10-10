@@ -1,9 +1,22 @@
 'use client'
 
 import { useWalletStore, SupportedNetwork } from '../../hooks/useWallet'
+import { useChainStore } from '../../hooks/useEvmWalletStore'
 
 export function NetworkBadge() {
-  const { network, setNetwork, isNetworkMismatch, isConnected } = useWalletStore()
+  const { network, setNetwork, isNetworkMismatch } = useWalletStore()
+  const activeChain = useChainStore((state) => state.activeChain)
+
+  // On Arc the network selector is meaningless: the chain id is fixed by
+  // NEXT_PUBLIC_ARC_CHAIN_ID, and the wallet-facing switcher is the ChainSwitcher.
+  if (activeChain === 'arc') {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-muted text-xs font-medium text-muted-foreground">
+        <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-primary" />
+        Testnet
+      </div>
+    )
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -38,7 +51,7 @@ export function NetworkBadge() {
         </div>
       </div>
 
-      {isConnected && isNetworkMismatch && (
+      {isNetworkMismatch && (
         <span
           className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive/10 text-destructive border border-destructive/30"
           title="Network mismatch between Freighter and ForgeX"

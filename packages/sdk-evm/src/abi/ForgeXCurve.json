@@ -1,0 +1,934 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "admin",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "buy",
+    "inputs": [
+      {
+        "name": "amount_out",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "max_cost",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "deadline",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "owed",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "factory",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_admin_fees",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_buy_limits",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "min_buy",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "max_buy",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_buy_price",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_cap",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_curve_info",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "info",
+        "type": "tuple",
+        "internalType": "struct IForgeXTypes.CurveInfo",
+        "components": [
+          {
+            "name": "token_id",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "initial_price",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "steepness",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "reserve_target",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "reserve",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "tokens_sold",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "price",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "market_cap",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "admin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "fee_rate",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "cap",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "graduated",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "admin_fees",
+            "type": "int256",
+            "internalType": "int256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_curve_params",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "initialPrice",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "steepness",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "reserveTarget",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_fee_rate",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_market_cap",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_price",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_reserve",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_reserve_ratio",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_sell_limits",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "min_sell",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "max_sell",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_sell_price",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "get_tokens_sold",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initialize",
+    "inputs": [
+      {
+        "name": "factory_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "token_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "initialPrice",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "steepness",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "reserveTarget",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "admin_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "quoteToken_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "is_graduated",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quote_buy",
+    "inputs": [
+      {
+        "name": "amount_out",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "owed",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quote_sell",
+    "inputs": [
+      {
+        "name": "amount_in",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "net",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quote_token",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "sell",
+    "inputs": [
+      {
+        "name": "amount_in",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "min_payout",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "deadline",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "net",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "set_buy_limits",
+    "inputs": [
+      {
+        "name": "min_buy",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "max_buy",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "set_cap",
+    "inputs": [
+      {
+        "name": "cap",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "set_fee_rate",
+    "inputs": [
+      {
+        "name": "rate",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "set_sell_limits",
+    "inputs": [
+      {
+        "name": "min_sell",
+        "type": "int256",
+        "internalType": "int256"
+      },
+      {
+        "name": "max_sell",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "token",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "upgrade",
+    "inputs": [
+      {
+        "name": "newImplementation",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdraw_fees",
+    "inputs": [
+      {
+        "name": "recipient",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amount",
+        "type": "int256",
+        "internalType": "int256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "Buy",
+    "inputs": [
+      {
+        "name": "buyer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cost",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "fee",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "newPrice",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "newReserve",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "newAdminFees",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Sell",
+    "inputs": [
+      {
+        "name": "seller",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "payout",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "fee",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "newPrice",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "newReserve",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "newAdminFees",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetBuyLimits",
+    "inputs": [
+      {
+        "name": "admin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "minBuy",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "maxBuy",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetCap",
+    "inputs": [
+      {
+        "name": "admin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "cap",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetFeeRate",
+    "inputs": [
+      {
+        "name": "admin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "rate",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetSellLimits",
+    "inputs": [
+      {
+        "name": "admin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "minSell",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "maxSell",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Upgrade",
+    "inputs": [
+      {
+        "name": "admin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newImplementation",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WithdrawFees",
+    "inputs": [
+      {
+        "name": "admin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AlreadyInitializedError",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BuyBelowMinimum",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BuyExceedsMaximum",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CapExceeded",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CurveInvariantBroken",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CurveOverflow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DeadlineExpired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ImplementationHasNoCode",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "IncorrectPayment",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientPayout",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidBuyAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidBuyLimits",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCap",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCurveParams",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidFeeRate",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidSellAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidSellLimits",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoFeesToWithdraw",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotFactory",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "QuoteTransferFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ReentrancyGuard",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SellBelowMinimum",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SellExceedsMaximum",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SlippageExceeded",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnauthorizedError",
+    "inputs": []
+  }
+]

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "prebuild": "npm run build -w @forgex/sdk",
+    "prebuild": "npm run build -w @forgex/sdk && npm run build -w @forgex/sdk-evm",
     "dev": "next dev",
     "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "next start",

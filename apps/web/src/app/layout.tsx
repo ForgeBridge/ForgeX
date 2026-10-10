@@ -8,6 +8,7 @@ import '../styles/globals.css'
 const ThemeProvider = dynamic(() => import('../components/providers/ThemeProvider').then(m => m.ThemeProvider), { ssr: false })
 const PrivyProvider = dynamic(() => import('../components/providers/PrivyProvider').then(m => m.PrivyProvider), { ssr: false })
 const PrivyWalletBridge = dynamic(() => import('../components/providers/PrivyWalletBridge').then(m => m.PrivyWalletBridge), { ssr: false })
+const PrivyEvmBridge = dynamic(() => import('../components/providers/PrivyEvmBridge').then(m => m.PrivyEvmBridge), { ssr: false })
 const Header = dynamic(() => import('../components/layout/Header').then(m => m.Header), { ssr: false })
 const SiteFooter = dynamic(() => import('../components/layout/SiteFooter').then(m => m.SiteFooter), { ssr: false })
 const WalletErrorBanner = dynamic(() => import('../components/wallet/WalletErrorBanner').then(m => m.WalletErrorBanner), { ssr: false })
@@ -89,6 +90,7 @@ export default function RootLayout({
         <ThemeProvider>
           <PrivyProvider>
           <PrivyWalletBridge />
+          <PrivyEvmBridge />
           <div className="flex flex-col min-h-screen">
             <TickerBar />
             <Header />
