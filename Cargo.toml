@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "contracts/token",
-    "contracts/factory",
-    "contracts/bonding-curve",
+    "contracts/stellar/token",
+    "contracts/stellar/factory",
+    "contracts/stellar/bonding-curve",
 ]
 resolver = "2"
 

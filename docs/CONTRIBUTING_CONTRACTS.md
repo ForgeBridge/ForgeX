@@ -17,7 +17,7 @@ This document outlines the standards and processes for contributing to ForgeX sm
 ### Repository Structure
 
 ```
-contracts/
+contracts/stellar/
 ├── token/              # SEP-41 Token contract
 │   ├── src/
 │   │   ├── lib.rs      # Contract entry point

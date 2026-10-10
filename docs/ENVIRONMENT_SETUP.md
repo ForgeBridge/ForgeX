@@ -196,10 +196,13 @@ npx husky add .husky/pre-commit "npm run lint"
 # All contracts
 cargo test --workspace --lib
 
-# Specific contract
-cd contracts/token && cargo test --lib
+# Specific contract (Stellar / Soroban)
+cd contracts/stellar/token && cargo test --lib
 cd ../factory && cargo test --lib
 cd ../bonding-curve && cargo test --lib
+
+# EVM contracts (Arc)
+cd contracts/evm && forge test
 
 # With output
 cargo test --lib -- --nocapture
@@ -252,8 +255,8 @@ npm run dev
 
 ```bash
 # 1. Create directory
-mkdir contracts/new-contract
-cd contracts/new-contract
+mkdir contracts/stellar/new-contract
+cd contracts/stellar/new-contract
 
 # 2. Initialize Cargo project
 cargo init --lib --name forgex_new_contract

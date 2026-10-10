@@ -157,9 +157,10 @@ SOROBAN_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
 | Scope | Command |
 |-------|---------|
 | All contracts | `cargo test --workspace --lib` |
-| Token only | `cd contracts/token && cargo test --lib` |
-| Factory only | `cd contracts/factory && cargo test --lib` |
-| Curve only | `cd contracts/bonding-curve && cargo test --lib` |
+| Token only | `cd contracts/stellar/token && cargo test --lib` |
+| Factory only | `cd contracts/stellar/factory && cargo test --lib` |
+| Curve only | `cd contracts/stellar/bonding-curve && cargo test --lib` |
+| EVM (Arc) | `cd contracts/evm && forge test` |
 | SDK typecheck | `npm run typecheck -w packages/sdk` |
 | Web typecheck | `npm run typecheck -w apps/web` |
 | SDK lint | `npm run lint -w packages/sdk` |

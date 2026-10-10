@@ -42,7 +42,7 @@ MIT OR Apache-2.0
 | `typescript` | ^5.4.0 | Apache-2.0 | ✅ Dev only |
 | `vitest` | ^1.6.0 | MIT | ✅ Dev only |
 
-### Contracts (`contracts/*/Cargo.toml`)
+### Contracts (`contracts/*/*/Cargo.toml`, `contracts/evm/src/**`)
 
 | Crate | Version | License | Status |
 |-------|---------|---------|--------|
