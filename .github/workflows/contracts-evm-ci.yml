@@ -1,0 +1,52 @@
+name: EVM Contracts CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'contracts/evm/**'
+      - '.github/workflows/contracts-evm-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'contracts/evm/**'
+      - '.github/workflows/contracts-evm-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts/evm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          cache: false
+
+      - name: Build
+        run: forge build --sizes
+
+      - name: Test
+        run: forge test -vv
+
+      # The math parity vectors are the bridge between this suite and the Soroban
+      # suite: a failure here means the two chains would quote different prices.
+      - name: Verify curve-math parity
+        run: forge test --match-contract BondingCurveMathTest
+
+      - name: Verify contract sizes stay under EIP-170
+        run: |
+          forge build --sizes
+          for size in $(forge build --sizes | awk -F'|' '/ForgeX/ {gsub(/[^0-9]/,"",$3); print $3}'); do
+            if [ "$size" -gt 24576 ]; then
+              echo "::error::A contract exceeds the 24KB EIP-170 limit: ${size} bytes"
+              exit 1
+            fi
+          done

@@ -4,13 +4,13 @@ on:
   push:
     branches: [main]
     paths:
-      - 'contracts/**'
+      - 'contracts/stellar/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
   pull_request:
     branches: [main]
     paths:
-      - 'contracts/**'
+      - 'contracts/stellar/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
 
