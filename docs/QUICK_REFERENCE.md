@@ -157,7 +157,7 @@ SOROBAN_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
 | Task | Stellar / Soroban | Arc (EVM) |
 |------|-------------------|-----------|
 | Test | `cargo test --workspace --lib` (from repo root) | `cd contracts/evm && forge test` |
-| Build | `./scripts/build-contracts.sh` | `cd contracts/evm && forge build` |
+| Build | `./scripts/build-contracts.sh` | `git submodule update --init --recursive && cd contracts/evm && forge build` |
 | Deploy | `./scripts/deploy-testnet.sh` | `./scripts/deploy-arc.sh` |
 | Configure | `.env.local` (`NEXT_PUBLIC_*`) | `.env.local` (`NEXT_PUBLIC_ARC_*`) |
 | Docs | `docs/DEPLOYMENT.md` | `docs/DEPLOYMENT_ARC.md` |

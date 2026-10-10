@@ -20,6 +20,9 @@ is unchanged and lives in [DEPLOYMENT.md](./DEPLOYMENT.md).
 # Foundry (forge, cast, anvil)
 curl -L https://foundry.paradigm.xyz | bash && foundryup
 
+# forge-std is a submodule; without this the contracts will not compile
+git submodule update --init --recursive
+
 # Testnet USDC for gas
 #   https://faucet.circle.com   (Arc testnet)
 ```

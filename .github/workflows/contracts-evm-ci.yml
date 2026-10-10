@@ -23,7 +23,11 @@ jobs:
       run:
         working-directory: contracts/evm
     steps:
+      # forge-std is a submodule, so a plain checkout leaves lib/ empty and the
+      # contracts fail to resolve the import.
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1

@@ -56,7 +56,7 @@ All sources are first-party under the project's dual license.
 
 | Package | Version | License | Status |
 |---------|---------|---------|--------|
-| `forge-std` (vendored in `contracts/evm/lib/`) | vendored | MIT OR Apache-2.0 | ✅ Compatible, dev only |
+| `forge-std` (submodule at `contracts/evm/lib/forge-std`) | pinned | MIT OR Apache-2.0 | ✅ Compatible, dev only |
 
 ---
 
